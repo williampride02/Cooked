@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd ../.. && pnpm install && pnpm build:web",
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "framework": "nextjs",
-  "crons": []
-}
