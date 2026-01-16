@@ -1,0 +1,108 @@
+# generated: 2026-01-14
+# project: Cooked
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts/stories
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-01-14
+project: Cooked
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts/stories
+
+development_status:
+  # Epic 1: Foundation & Authentication (6 stories)
+  epic-1: done
+  1-1-project-setup-and-design-system-foundation: done
+  1-2-phone-number-entry-screen: done
+  1-3-sms-code-verification: done
+  1-4-profile-setup: done
+  1-5-user-profile-viewing-and-editing: done
+  1-6-account-deletion: done
+  epic-1-retrospective: optional
+
+  # Epic 2: Groups & Social Foundation (9 stories)
+  epic-2: done
+  2-1-create-group: done
+  2-2-generate-and-share-invite-link: done
+  2-3-join-group-via-invite-link: done
+  2-4-group-activity-feed: done
+  2-5-feed-item-types-and-display: done
+  2-6-quick-reactions-on-feed-items: done
+  2-7-leave-group: done
+  2-8-remove-member-admin: done
+  2-9-transfer-admin-role: done
+  epic-2-retrospective: optional
+
+  # Epic 3: Pact Creation & Management (5 stories)
+  epic-3: done
+  3-1-create-basic-pact: done
+  3-2-pact-types-individual-group-relay: done
+  3-3-edit-pact: done
+  3-4-archive-pact: done
+  3-5-pact-statistics: done
+  epic-3-retrospective: optional
+
+  # Epic 4: Daily Check-ins (5 stories)
+  epic-4: done  # Client-side complete
+  4-1-daily-check-in-success: done
+  4-2-daily-check-in-fold-with-excuse-selection: done
+  4-3-proof-photo-submission: done
+  4-4-check-in-reminder-notifications: backlog  # Requires backend Edge Function
+  4-5-missed-check-in-auto-fold: backlog  # Requires backend Edge Function
+  epic-4-retrospective: optional
+
+  # Epic 5: Roast Threads & Reactions (7 stories)
+  epic-5: done
+  5-1-roast-thread-creation: done
+  5-2-text-roast-responses: done
+  5-3-gif-and-image-roast-responses: done
+  5-4-roast-level-enforcement: done
+  5-5-roast-polls: backlog  # P1 - requires new DB tables, deferred for MVP
+  5-6-best-roast-pin: done
+  5-7-mute-and-safety-controls: done
+  epic-5-retrospective: optional
+
+  # Epic 6: Weekly Recaps & Notifications (5 stories)
+  epic-6: done
+  6-1-auto-generated-weekly-recap: done  # Client-side - Edge Function needed for generation
+  6-2-recap-contents-and-awards: done
+  6-3-shareable-recap-card: done
+  6-4-push-notification-types: done  # Client-side - Expo Push setup needed
+  6-5-notification-preferences: done
+  epic-6-retrospective: optional
+
+  # Epic 7: Monetization & Premium Features (4 stories)
+  epic-7: done
+  7-1-free-tier-implementation: done
+  7-2-premium-tier-and-feature-gating: done
+  7-3-subscription-payment-processing: done  # UI ready - IAP integration needed
+  7-4-stakes-system-post-mvp-placeholder: backlog  # Post-MVP
+  epic-7-retrospective: optional

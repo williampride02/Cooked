@@ -1,0 +1,21 @@
+installation:
+  version: 6.0.0-alpha.23
+  installDate: 2026-01-14T03:36:52.282Z
+  lastUpdated: 2026-01-14T03:36:52.282Z
+modules:
+  - core
+  - bmb
+  - bmgd
+  - bmm
+  - cis
+ides:
+  - claude-code
+  - codex
+  - cursor
+  - antigravity
+  - opencode
+  - cline
+  - gemini
+  - kilo
+  - qwen
+  - roo

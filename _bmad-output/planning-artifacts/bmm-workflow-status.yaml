@@ -1,0 +1,142 @@
+# Workflow Status - Cooked
+
+# This tracks progress through BMM methodology Analysis, Planning, and Solutioning phases.
+# Implementation phase is tracked separately in sprint-status.yaml
+
+# STATUS DEFINITIONS:
+# ==================
+# Initial Status (before completion):
+#   - required: Must be completed to progress
+#   - optional: Can be completed but not required
+#   - recommended: Strongly suggested but not required
+#   - conditional: Required only if certain conditions met (e.g., if_has_ui)
+#
+# Completion Status:
+#   - {file-path}: File created/found (e.g., "docs/product-brief.md")
+#   - skipped: Optional/conditional workflow that was skipped
+
+generated: "2026-01-13"
+last_updated: "2026-01-13"
+project: "Cooked"
+project_type: "social-accountability-app"
+selected_track: "bmad-method"
+field_type: "greenfield"
+workflow_path: "method-greenfield.yaml"
+
+# Project description:
+# A roasty group-accountability app where friend groups hold each other accountable
+# through pacts, daily check-ins, and friendly roasting. Features roast threads,
+# weekly recaps, and group leaderboards. Monetizes via group subscriptions,
+# optional stakes, and anonymous behavioral insight reports.
+
+workflow_status:
+  phase_1_analysis:
+    name: "Analysis (Optional)"
+    status: "completed"
+    workflows:
+      - id: "brainstorm-project"
+        status: "imported"
+        output: "User's ChatGPT brainstorm session"
+        note: "Imported from user's extensive ChatGPT brainstorming"
+
+      - id: "research"
+        status: "completed"
+        output: "planning-artifacts/research-competitive-analysis.md"
+        agent: "analyst"
+        completed_at: "2026-01-13"
+        note: "Competitive analysis of Beeminder, StickK, HabitShare, Habitica, etc. + technical feasibility (Supabase)"
+
+      - id: "product-brief"
+        status: "completed"
+        output: "planning-artifacts/product-brief.md"
+        agent: "analyst"
+        completed_at: "2026-01-13"
+        note: "Strategic product vision, target users, success metrics, monetization"
+
+  phase_2_planning:
+    name: "Planning"
+    status: "completed"
+    workflows:
+      - id: "prd"
+        status: "completed"
+        output: "planning-artifacts/prd.md"
+        agent: "pm"
+        completed_at: "2026-01-13"
+        note: "Comprehensive PRD with 50+ functional requirements, data model, API design"
+
+      - id: "create-ux-design"
+        status: "completed"
+        output: "planning-artifacts/ux-design.md"
+        agent: "ux-designer"
+        completed_at: "2026-01-13"
+        note: "Full design system, 10+ screen specs, user flows, component library"
+
+  phase_3_solutioning:
+    name: "Solutioning"
+    status: "completed"
+    workflows:
+      - id: "create-architecture"
+        status: "completed"
+        output: "planning-artifacts/architecture.md"
+        agent: "architect"
+        completed_at: "2026-01-13"
+        note: "Expo + Supabase architecture, database schema, real-time design, deployment strategy"
+
+      - id: "create-epics-and-stories"
+        status: "completed"
+        output: "planning-artifacts/epics.md"
+        agent: "pm"
+        completed_at: "2026-01-14"
+        note: "7 epics, 33 stories, 100% FR coverage validated"
+
+      - id: "implementation-readiness"
+        status: "skipped"
+        note: "Validation incorporated into create-epics-and-stories step-04"
+
+  phase_4_implementation:
+    name: "Implementation"
+    status: "in_progress"
+    workflows:
+      - id: "sprint-planning"
+        status: "completed"
+        output: "implementation-artifacts/sprint-status.yaml"
+        agent: "sm"
+        completed_at: "2026-01-14"
+        note: "7 epics, 33 stories ready for development"
+
+# Summary of completed artifacts:
+artifacts_created:
+  - path: "planning-artifacts/research-competitive-analysis.md"
+    type: "research"
+    description: "Competitive landscape, market analysis, technical feasibility"
+
+  - path: "planning-artifacts/product-brief.md"
+    type: "product-brief"
+    description: "Product vision, target users, core mechanics, success metrics, business model"
+
+  - path: "planning-artifacts/prd.md"
+    type: "prd"
+    description: "Functional requirements, data model, API design, non-functional requirements"
+
+  - path: "planning-artifacts/ux-design.md"
+    type: "ux-design"
+    description: "Design system, screen specifications, user flows, component library"
+
+  - path: "planning-artifacts/architecture.md"
+    type: "architecture"
+    description: "System architecture, database schema, real-time design, deployment"
+
+  - path: "planning-artifacts/epics.md"
+    type: "epics"
+    description: "7 epics, 33 user stories with Given/When/Then acceptance criteria"
+
+  - path: "implementation-artifacts/sprint-status.yaml"
+    type: "sprint-status"
+    description: "Sprint tracking file with all epics and stories in backlog"
+
+# Next steps:
+next_action:
+  workflow: "create-story"
+  agent: "sm"
+  command: "/bmad:bmm:workflows:create-story"
+  description: "Create the first story file (1-1-project-setup-and-design-system-foundation) to begin development"

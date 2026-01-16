@@ -1,0 +1,14 @@
+{
+  "name": "cooked-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "mobile": "pnpm --filter @cooked/mobile start",
+    "web": "pnpm --filter @cooked/web dev",
+    "build:mobile": "pnpm --filter @cooked/mobile build",
+    "build:web": "pnpm --filter @cooked/web build"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
