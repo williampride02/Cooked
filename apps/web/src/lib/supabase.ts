@@ -1,6 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { getSupabaseConfig } from '@cooked/shared';
 
-const { url, anonKey } = getSupabaseConfig();
+// Get env vars with fallbacks for build time
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const supabase = createBrowserClient(url, anonKey);
+// Create client (will be empty during build, populated at runtime)
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
