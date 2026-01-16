@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+// Force dynamic rendering (don't pre-render at build time)
+export const dynamic = 'force-dynamic';
+
 export default function SignupPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@cooked/shared';
 
+// Force dynamic rendering (don't pre-render at build time)
+export const dynamic = 'force-dynamic';
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
