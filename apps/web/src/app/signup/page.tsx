@@ -42,7 +42,7 @@ export default function SignupPage() {
           .from('users')
           .insert({
             id: authData.user.id,
-            phone: '', // Empty for email signups
+            phone: null, // Null for email signups
             display_name: formData.name,
             avatar_url: null,
           });
