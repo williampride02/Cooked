@@ -75,8 +75,8 @@ development_status:
   4-1-daily-check-in-success: done
   4-2-daily-check-in-fold-with-excuse-selection: done
   4-3-proof-photo-submission: done
-  4-4-check-in-reminder-notifications: backlog  # Requires backend Edge Function
-  4-5-missed-check-in-auto-fold: backlog  # Requires backend Edge Function
+  4-4-check-in-reminder-notifications: ready-for-dev  # Requires backend Edge Function
+  4-5-missed-check-in-auto-fold: ready-for-dev  # Requires backend Edge Function
   epic-4-retrospective: optional
 
   # Epic 5: Roast Threads & Reactions (7 stories)
@@ -85,7 +85,7 @@ development_status:
   5-2-text-roast-responses: done
   5-3-gif-and-image-roast-responses: done
   5-4-roast-level-enforcement: done
-  5-5-roast-polls: backlog  # P1 - requires new DB tables, deferred for MVP
+  5-5-roast-polls: ready-for-dev  # P1 - requires new DB tables, deferred for MVP
   5-6-best-roast-pin: done
   5-7-mute-and-safety-controls: done
   epic-5-retrospective: optional
@@ -104,5 +104,15 @@ development_status:
   7-1-free-tier-implementation: done
   7-2-premium-tier-and-feature-gating: done
   7-3-subscription-payment-processing: done  # UI ready - IAP integration needed
-  7-4-stakes-system-post-mvp-placeholder: backlog  # Post-MVP
+  7-4-stakes-system-post-mvp-placeholder: ready-for-dev  # Post-MVP
   epic-7-retrospective: optional
+
+  # Epic Web: Web Application (stories for web app features)
+  epic-web: in-progress
+  web-1-dashboard-groups-feed: done  # Dashboard, groups list, create/join, feed display
+  web-2-pacts-management: ready-for-dev  # View, create, edit, archive pacts
+  web-3-check-in-interface: backlog  # Check-in success/fold with proof
+  web-4-real-time-feed-updates: backlog  # Real-time feed via WebSocket
+  web-5-roast-threads: backlog  # View and participate in roast threads
+  web-6-weekly-recaps: backlog  # View and share weekly recaps
+  epic-web-retrospective: optional

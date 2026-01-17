@@ -277,6 +277,29 @@ Users can access the free tier with limited features, subscribe to premium for u
 
 ---
 
+### Epic Web: Web Application
+Users can access Cooked from web browsers with full feature parity to mobile app, enabling backend testing during development and cross-platform access in production. Includes dual authentication (email/password + phone/OTP), account linking, and all core features accessible via web interface.
+
+**FRs Covered:** All mobile FRs (web implementation), plus:
+- Web-AUTH-001: Dual Authentication (email/password + phone/OTP)
+- Web-AUTH-002: Account Linking (email ↔ phone)
+- Web-FEAT-001: Web Dashboard & Groups
+- Web-FEAT-002: Web Pacts Management
+- Web-FEAT-003: Web Check-in Interface
+- Web-FEAT-004: Real-time Feed Updates
+- Web-FEAT-005: Web Roast Threads
+- Web-FEAT-006: Web Weekly Recaps
+
+**Technical Notes:**
+- Next.js 15 App Router
+- Supabase SSR for authentication
+- Shared types from `@cooked/shared` package
+- Tailwind CSS (matches mobile design system)
+- Real-time via Supabase Realtime WebSocket
+- Responsive design (desktop-first, mobile-friendly)
+
+---
+
 ## Epic 1: Foundation & Authentication
 
 ### Story 1.1: Project Setup and Design System Foundation
@@ -1548,9 +1571,214 @@ So that **there are real financial consequences for folding**.
 
 ---
 
+## Epic Web: Web Application
+
+### Story Web.1: Dashboard, Groups, and Feed
+
+As a **user accessing Cooked from the web**,
+I want **to see my dashboard with groups and activity feed**,
+So that **I can manage my accountability groups and see activity from my browser**.
+
+**Acceptance Criteria:**
+
+**Given** I am logged in and have no groups
+**When** I view the dashboard
+**Then** I see "Create a Group" and "Join with Link" options
+**And** I see helper text about needing 3 friends
+
+**Given** I am logged in and have groups
+**When** I view the dashboard
+**Then** I am automatically redirected to my first group's feed
+
+**Given** I am on the create group page
+**When** I enter a group name (2-30 characters)
+**Then** I can create the group
+**And** I am navigated to the group invite screen
+
+**Given** I am on the join group page
+**When** I enter a 6-character invite code
+**Then** I can join the group
+**And** I am navigated to the group feed
+
+**Given** I am viewing a group feed
+**When** the feed loads
+**Then** I see check-in items with user info, status, and time
+**And** I see an empty state if there's no activity
+**And** I can create a pact via FAB button
+
+**Technical Notes:**
+- Implements: Web-FEAT-001
+- Status: DONE (completed 2026-01-17)
+
+---
+
+### Story Web.2: Pacts Management
+
+As a **user on the web app**,
+I want **to view, create, and manage pacts**,
+So that **I can set up accountability pacts from my browser**.
+
+**Acceptance Criteria:**
+
+**Given** I am viewing a group
+**When** I navigate to pacts
+**Then** I see a list of all active pacts in the group
+**And** I can see pact details (name, frequency, roast level, participants)
+
+**Given** I am viewing the pacts list
+**When** I tap "Create Pact"
+**Then** I see a form to create a new pact
+**And** I can set name, frequency, roast level, proof requirements
+**And** I can select pact type (individual, group, relay)
+
+**Given** I am viewing a pact
+**When** I am the pact creator
+**Then** I can edit pact settings
+**And** I can archive the pact
+
+**Given** I am viewing pact statistics
+**When** I view a pact
+**Then** I see completion rates, streaks, and participant stats
+
+**Technical Notes:**
+- Implements: Web-FEAT-002
+- Reuses mobile pact logic via shared types
+- Requires: usePacts hook for web
+
+---
+
+### Story Web.3: Check-in Interface
+
+As a **user on the web app**,
+I want **to check in on my pacts**,
+So that **I can mark my progress from my browser**.
+
+**Acceptance Criteria:**
+
+**Given** I am viewing a group
+**When** I tap "Check In"
+**Then** I see a list of pacts I need to check in for today
+**And** I can mark each as "Success" or "Fold"
+
+**Given** I mark a check-in as "Fold"
+**When** I submit
+**Then** I can select an excuse (preset or custom)
+**And** the fold is recorded
+**And** a roast thread is created (if applicable)
+
+**Given** I mark a check-in as "Success"
+**When** I submit
+**Then** I can optionally upload proof photo
+**And** the success is recorded
+**And** my streak is updated
+
+**Given** I view my check-in history
+**When** I navigate to a pact
+**Then** I see my past check-ins with dates and status
+
+**Technical Notes:**
+- Implements: Web-FEAT-003
+- Reuses mobile check-in logic
+- Requires: useCheckIns hook for web
+
+---
+
+### Story Web.4: Real-time Feed Updates
+
+As a **user viewing the web feed**,
+I want **to see updates in real-time**,
+So that **I stay current with group activity**.
+
+**Acceptance Criteria:**
+
+**Given** I am viewing a group feed
+**When** a new check-in is posted
+**Then** the feed updates automatically without refresh
+**And** I see a visual indicator of new activity
+
+**Given** I am viewing a group feed
+**When** a new member joins
+**Then** I see a "member joined" feed item appear
+**And** the feed updates in real-time
+
+**Given** I am viewing a group feed
+**When** a new pact is created
+**Then** I see a "pact created" feed item appear
+**And** the feed updates in real-time
+
+**Technical Notes:**
+- Implements: Web-FEAT-004
+- Uses: Supabase Realtime WebSocket subscriptions
+- Requires: useRealtimeSubscription hook for web
+
+---
+
+### Story Web.5: Roast Threads (Web)
+
+As a **user on the web app**,
+I want **to view and participate in roast threads**,
+So that **I can roast my friends when they fold**.
+
+**Acceptance Criteria:**
+
+**Given** I am viewing a fold check-in
+**When** I tap on it
+**Then** I see the roast thread for that fold
+**And** I can see all roast responses
+
+**Given** I am viewing a roast thread
+**When** I want to respond
+**Then** I can post text, GIF, or image responses
+**And** I can react to existing responses with emojis
+
+**Given** I am viewing a roast thread
+**When** roast level is enforced
+**Then** I see appropriate features based on level (Mild/Medium/Nuclear)
+**And** I can mute the thread if needed
+
+**Technical Notes:**
+- Implements: Web-FEAT-005
+- Reuses mobile roast thread logic
+- Requires: useRoastThreads hook for web
+
+---
+
+### Story Web.6: Weekly Recaps (Web)
+
+As a **user on the web app**,
+I want **to view weekly recaps**,
+So that **I can see group performance summaries**.
+
+**Acceptance Criteria:**
+
+**Given** I am viewing a group
+**When** a weekly recap is available
+**Then** I see a recap feed item
+**And** I can tap to view the full recap
+
+**Given** I am viewing a weekly recap
+**When** the recap loads
+**Then** I see awards (most consistent, biggest fold, etc.)
+**And** I see group statistics
+**And** I see highlights and leaderboard
+
+**Given** I am viewing a weekly recap
+**When** I want to share
+**Then** I can generate a shareable recap card image
+**And** I can download or copy the image
+
+**Technical Notes:**
+- Implements: Web-FEAT-006
+- Reuses mobile recap display logic
+- Requires: useRecaps hook for web
+
+---
+
 ## Related Documents
 
 - [[Product Brief]] - Product vision and strategy
 - [[PRD]] - Full product requirements
 - [[Architecture]] - Technical architecture
 - [[UX Design]] - Design system and screens
+- [[Web App Design]] - Web application architecture and features
+- [[Web App Auth Spec]] - Web authentication and account linking

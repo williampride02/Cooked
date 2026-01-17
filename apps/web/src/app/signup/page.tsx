@@ -23,7 +23,10 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
+      console.log('[SIGNUP] Starting signup for email:', formData.email);
+      
       // 1. Sign up with Supabase Auth
+      // The database trigger will automatically create the user profile
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -34,29 +37,77 @@ export default function SignupPage() {
         },
       });
 
-      if (authError) throw authError;
+      console.log('[SIGNUP] Auth response:', {
+        hasUser: !!authData?.user,
+        userId: authData?.user?.id,
+        userEmail: authData?.user?.email,
+        hasSession: !!authData?.session,
+        error: authError?.message,
+      });
 
-      // 2. Create user profile in users table
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            phone: null, // Null for email signups
-            display_name: formData.name,
-            avatar_url: null,
-          });
+      if (authError) {
+        console.error('[SIGNUP] Auth error:', {
+          message: authError.message,
+          status: authError.status,
+          name: authError.name,
+        });
+        
+        // If user already exists error, suggest login
+        if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
+          setError('An account with this email already exists. Please log in instead.');
+          return;
+        }
+        throw authError;
+      }
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          // Don't block signup if profile creation fails
+      if (!authData.user) {
+        console.warn('[SIGNUP] No user returned - email confirmation may be required');
+        setError('Please check your email to confirm your account before logging in.');
+        return;
+      }
+
+      // 3. Profile is automatically created by database trigger
+      // Wait a moment for trigger to execute, then verify
+      console.log('[SIGNUP] Waiting for trigger to create profile...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verify profile was created
+      const { data: profileData, error: profileCheckError } = await supabase
+        .from('users')
+        .select('id, email, phone, display_name')
+        .eq('id', authData.user.id)
+        .single();
+
+      console.log('[SIGNUP] Profile check:', {
+        found: !!profileData,
+        profileData,
+        error: profileCheckError?.message,
+        errorCode: profileCheckError?.code,
+      });
+
+      if (profileCheckError) {
+        if (profileCheckError.code === 'PGRST116') {
+          console.error('[SIGNUP] Profile not found after signup! Auth user ID:', authData.user.id);
+          setError('Account created but profile setup failed. Please contact support.');
+          return;
+        } else {
+          console.error('[SIGNUP] Profile check error:', profileCheckError);
+          // Don't fail - might be a timing issue, but log it
         }
       }
 
-      // 3. Redirect to login
+      console.log('[SIGNUP] Signup successful! Redirecting to login...');
+      // 4. Redirect to login
       router.push('/login?success=Account created! Please log in.');
     } catch (err: any) {
-      setError(err.message || 'Failed to create account');
+      // Handle specific error cases
+      if (err.message?.includes('already registered') || err.message?.includes('already exists')) {
+        setError('An account with this email already exists. Please log in instead.');
+      } else if (err.message?.includes('duplicate') || err.message?.includes('unique')) {
+        setError('This email is already associated with an account. Please log in instead.');
+      } else {
+        setError(err.message || 'Failed to create account');
+      }
     } finally {
       setLoading(false);
     }

@@ -37,18 +37,19 @@ This PRD defines the functional and non-functional requirements for Cooked's Min
 
 ### 1.3 Scope
 **In Scope (MVP)**:
-- User authentication (phone number)
+- User authentication (phone number + email/password)
+- Dual authentication with account linking (email ↔ phone)
 - Group creation and management
 - Pact creation and tracking
 - Daily check-in system
 - Roast thread functionality
 - Weekly recap generation
-- Push notifications
+- Push notifications (mobile)
 - Basic subscription/payment
+- Web application (for backend testing + cross-platform access)
 
 **Out of Scope (Post-MVP)**:
 - AI-generated roasts
-- Web application
 - Multiple groups per user
 - Public/discovery features
 - Advanced analytics dashboard
