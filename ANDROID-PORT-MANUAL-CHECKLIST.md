@@ -275,6 +275,160 @@ This checklist documents all manual tasks required to complete the Android port.
 
 ---
 
+## Phase 3B: Remote Testing & Sharing
+
+### Building APK for Remote Testing
+
+- [ ] **Build Development APK**
+  - [ ] Run: `eas build --platform android --profile development`
+  - [ ] Wait for build to complete (EAS will provide download link)
+  - [ ] Download APK file to your computer
+  - [ ] Verify APK file size is reasonable (~50-100MB typical)
+
+- [ ] **Alternative: Build Preview APK**
+  - [ ] Run: `eas build --platform android --profile preview`
+  - [ ] Use this if you want a more production-like build
+  - [ ] Download APK when ready
+
+### Sharing Methods
+
+#### Option 1: Direct APK Sharing (Easiest)
+
+- [ ] **Upload APK to Cloud Storage**
+  - [ ] Upload APK to Google Drive, Dropbox, or similar
+  - [ ] Create shareable link (set to "Anyone with link can view")
+  - [ ] Share link with your friend via text/email
+
+- [ ] **Friend Installation Steps** (send these instructions):
+  ```
+  1. Open the shared link on your Android device
+  2. Download the APK file
+  3. When prompted, allow "Install from unknown sources" (Android will guide you)
+  4. Open Settings → Security → Enable "Install unknown apps" for your browser/Drive app
+  5. Tap the downloaded APK file to install
+  6. If prompted, allow installation from this source
+  ```
+
+#### Option 2: Google Play Internal Testing (Recommended for Multiple Testers)
+
+- [ ] **Set Up Google Play Console** (if not done in Phase 3)
+  - [ ] Create Google Play Console account ($25 one-time fee)
+  - [ ] Create app listing
+  - [ ] Complete basic app information
+
+- [ ] **Create Internal Testing Track**
+  - [ ] Go to Play Console → Your App → Testing → Internal testing
+  - [ ] Create new release
+  - [ ] Upload AAB file (build with `eas build --platform android --profile production`)
+  - [ ] Add release notes
+  - [ ] Save and review release
+
+- [ ] **Add Testers**
+  - [ ] Go to Internal testing → Testers tab
+  - [ ] Create tester list or use email addresses
+  - [ ] Add your friend's email address
+  - [ ] Share the opt-in link with your friend
+
+- [ ] **Friend Installation Steps** (send these instructions):
+  ```
+  1. Click the opt-in link I sent you
+  2. Join the internal testing program
+  3. You'll be redirected to Play Store
+  4. Install "Cooked" from Play Store (it will show as a test version)
+  5. Updates will come through Play Store automatically
+  ```
+
+#### Option 3: Firebase App Distribution (Free Alternative)
+
+- [ ] **Set Up Firebase App Distribution**
+  - [ ] Create Firebase project (free)
+  - [ ] Install Firebase CLI: `npm install -g firebase-tools`
+  - [ ] Login: `firebase login`
+  - [ ] Initialize: `firebase init appdistribution`
+
+- [ ] **Distribute APK**
+  - [ ] Run: `firebase appdistribution:distribute path/to/app.apk --app YOUR_APP_ID --groups testers`
+  - [ ] Add friend's email to tester group
+  - [ ] Friend will receive email with download link
+
+- [ ] **Friend Installation Steps** (send these instructions):
+  ```
+  1. Check your email for Firebase App Distribution invite
+  2. Click the download link
+  3. Install the app (may need to allow unknown sources)
+  4. Report any issues back to me
+  ```
+
+### Testing Coordination
+
+- [ ] **Create Testing Document**
+  - [ ] Create shared document (Google Doc, Notion, etc.)
+  - [ ] List features to test (use checklist from Phase 1 & 2)
+  - [ ] Add sections for bug reports
+  - [ ] Share document with friend
+
+- [ ] **Set Up Communication Channel**
+  - [ ] Choose communication method (text, email, Slack, etc.)
+  - [ ] Establish testing schedule/check-ins
+  - [ ] Set expectations for feedback format
+
+- [ ] **Provide Testing Instructions**
+  - [ ] Share app version/build number
+  - [ ] Explain what to test (core features, specific flows)
+  - [ ] Provide test account credentials (if needed)
+  - [ ] Explain how to report bugs (screenshots, steps to reproduce)
+
+### Collecting Feedback
+
+- [ ] **Bug Reporting Template** (share with friend):
+  ```
+  Bug Report:
+  - Device: [Phone model, Android version]
+  - Feature: [What were you testing?]
+  - Steps to reproduce: [What did you do?]
+  - Expected: [What should happen?]
+  - Actual: [What actually happened?]
+  - Screenshots: [Attach if possible]
+  ```
+
+- [ ] **Feature Testing Checklist** (share with friend):
+  - [ ] Can you sign up/login?
+  - [ ] Can you create/join a group?
+  - [ ] Can you create a pact?
+  - [ ] Can you check in (success/fold)?
+  - [ ] Do notifications work?
+  - [ ] Does the app feel smooth/responsive?
+  - [ ] Any crashes or freezes?
+
+### Iterative Testing Process
+
+- [ ] **Build → Share → Test → Fix → Repeat**
+  - [ ] Build new APK after fixes
+  - [ ] Share updated APK with friend
+  - [ ] Friend tests fixes
+  - [ ] Collect feedback
+  - [ ] Make additional fixes if needed
+  - [ ] Repeat until stable
+
+- [ ] **Version Tracking**
+  - [ ] Keep track of which build version friend is testing
+  - [ ] Use build numbers or version codes to track
+  - [ ] Document which issues are fixed in which version
+
+### Security Considerations
+
+- [ ] **APK Signing**
+  - [ ] Use EAS managed signing (recommended) or your own keystore
+  - [ ] Never share debug keystore (use development/preview profiles)
+  - [ ] For production testing, use production signing
+
+- [ ] **Privacy**
+  - [ ] Ensure test builds don't contain production API keys
+  - [ ] Use development/staging backend if possible
+  - [ ] Warn friend that it's a test build
+
+---
+
 ## Phase 4: QA & Device Testing
 
 ### Multiple Android Versions
@@ -461,19 +615,50 @@ Use BMAD workflow to create stories:
 cd /Users/williampride/Projects/Cooked-android-port/apps/mobile
 npx expo run:android
 
-# Build APK for testing
+# Build APK for testing (for remote sharing)
 eas build --platform android --profile development
+
+# Build APK for preview/internal testing
+eas build --platform android --profile preview
 
 # Build AAB for Play Store
 eas build --platform android --profile production
+
+# Check build status
+eas build:list --platform android
+
+# Download build (if needed)
+eas build:download --platform android --latest
+```
+
+### Remote Testing Commands
+
+```bash
+# Build and get shareable link
+eas build --platform android --profile development
+
+# After build completes, EAS provides:
+# - Download URL (share this with friend)
+# - QR code (friend can scan to download)
+# - Direct APK link
+
+# Alternative: Use Firebase App Distribution
+firebase appdistribution:distribute apps/mobile/build/app-release.apk \
+  --app YOUR_FIREBASE_APP_ID \
+  --groups testers \
+  --release-notes "Test build for remote testing"
 ```
 
 ### Useful Links
 
 - [Expo Android Development](https://docs.expo.dev/workflow/android/)
+- [EAS Build Documentation](https://docs.expo.dev/build/introduction/)
 - [Google Play Console](https://play.google.com/console/)
+- [Google Play Internal Testing](https://support.google.com/googleplay/android-developer/answer/9845334)
+- [Firebase App Distribution](https://firebase.google.com/docs/app-distribution)
 - [Android App Links](https://developer.android.com/training/app-links)
 - [Android Permissions](https://developer.android.com/training/permissions/requesting)
+- [Installing APKs on Android](https://www.androidcentral.com/how-install-apk-files-android)
 
 ### Known Issues
 
@@ -490,6 +675,7 @@ eas build --platform android --profile production
 **Completion:** 0% (0/150+ items checked)
 
 **Next Steps:**
-1. Set up Android emulator or connect device
-2. Begin Phase 1 testing
-3. Document findings as you go
+1. Set up Android emulator OR build APK for remote testing (see Phase 3B)
+2. If remote testing: Build APK and share with friend using one of the methods in Phase 3B
+3. Begin Phase 1 testing (locally or coordinate with remote tester)
+4. Document findings as you go
