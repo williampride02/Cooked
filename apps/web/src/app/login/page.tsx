@@ -18,6 +18,7 @@ function LoginForm() {
   const [method, setMethod] = useState<AuthMethod>('email');
   const [phoneStep, setPhoneStep] = useState<PhoneStep>('input');
   const [phone, setPhone] = useState('');
+  const nextParam = searchParams.get('next');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -208,7 +209,10 @@ function LoginForm() {
           {phoneStep === 'input' && (
             <p className="mt-6 text-center text-text-secondary text-sm">
               Don't have an account?{' '}
-              <a href="/signup" className="text-primary hover:underline">
+              <a
+                href={nextParam ? `/signup?next=${encodeURIComponent(nextParam)}` : '/signup'}
+                className="text-primary hover:underline"
+              >
                 Sign up
               </a>
             </p>

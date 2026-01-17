@@ -22,10 +22,10 @@ export default function JoinByTokenPage() {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
 
-      // If not authenticated, store token and redirect to login
+      // If not authenticated, store token and redirect to signup (default)
       if (!session && token) {
         localStorage.setItem('pendingInviteToken', token);
-        router.push(`/login?next=/join/${token}`);
+        router.push(`/signup?next=/join/${token}`);
         return;
       }
 

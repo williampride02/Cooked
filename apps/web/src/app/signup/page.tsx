@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const nextParam = searchParams?.get('next');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -205,7 +206,10 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-text-secondary text-sm">
             Already have an account?{' '}
-            <a href="/login" className="text-primary hover:underline">
+            <a
+              href={nextParam ? `/login?next=${encodeURIComponent(nextParam)}` : '/login'}
+              className="text-primary hover:underline"
+            >
               Log in
             </a>
           </p>

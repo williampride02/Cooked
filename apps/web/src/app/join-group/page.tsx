@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useInvites } from '@/hooks/useInvites';
+import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,12 @@ export default function JoinGroupPage() {
   const handleRequestJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isCodeValid || isLoading) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.push(`/signup?next=/join-group?code=${encodeURIComponent(trimmedCode)}`);
+      return;
+    }
 
     const result = await requestJoinByCode(trimmedCode);
 
