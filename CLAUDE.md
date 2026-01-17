@@ -24,10 +24,13 @@ Cooked/
 
 ### Mobile App (`apps/mobile/`)
 - **Framework**: Expo SDK 54+ (React Native 0.76+)
+- **Platforms**: iOS and Android (cross-platform)
 - **Routing**: Expo Router (file-based)
 - **Styling**: NativeWind (Tailwind for React Native)
 - **State**: Zustand + TanStack Query
 - **Language**: TypeScript 5.0+ (strict mode)
+- **Android**: Native project in `android/` (generated via `expo prebuild`)
+- **iOS**: Native project in `ios/` (generated via `expo prebuild`)
 
 ### Web App (`apps/web/`)
 - **Framework**: Next.js 15 (App Router)
@@ -103,6 +106,16 @@ npx expo start --dev-client  # For dev build with Metro
 # Run on devices
 npx expo run:ios
 npx expo run:android
+
+# Android-specific commands
+npx expo prebuild --platform android  # Generate Android native project
+npx expo run:android --device  # Run on connected Android device
+npx expo run:android --variant release  # Build release variant
+
+# EAS Build for Android
+eas build --platform android --profile development  # Development APK
+eas build --platform android --profile preview  # Preview APK
+eas build --platform android --profile production  # Production AAB for Play Store
 
 # Run E2E tests
 ./scripts/run-e2e.sh
@@ -180,6 +193,7 @@ Key workflows:
 - `/bmad:bmm:workflows:dev-story` - Implement a story
 - `/bmad:bmm:workflows:create-story` - Create next story
 - `/bmad:bmm:workflows:code-review` - Review implementation
+- `/bmad:bmm:workflows:platform-parity` - Check platform coverage (iOS/Android/Web)
 
 ## Environment Variables
 
@@ -195,6 +209,8 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=
 - PRD: `_bmad-output/planning-artifacts/prd.md`
 - Design: `_bmad-output/planning-artifacts/ux-design.md`
 - Epics/Stories: `_bmad-output/planning-artifacts/epics.md`
+- Platform Parity: `docs/PLATFORM-PARITY.md`
+- Android Manual Checklist: `ANDROID-PORT-MANUAL-CHECKLIST.md`
 
 ---
 
@@ -505,3 +521,72 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-key>
 5. **Testing**
    - Test both apps after any shared package changes
    - Run `pnpm build:web` to catch type errors early
+   - Test on both iOS and Android when making mobile changes
+   - Use platform-parity workflow to track cross-platform coverage
+
+## Android Development
+
+### Android Project Structure
+
+The Android native project is generated in `apps/mobile/android/` via `expo prebuild`. Key files:
+
+- `android/app/src/main/AndroidManifest.xml` - App configuration, permissions, deep links
+- `android/app/build.gradle` - App-level build configuration
+- `android/build.gradle` - Project-level build configuration
+- `android/app/src/main/res/` - Android resources (icons, drawables, values)
+
+### Android Configuration
+
+**Package Name**: `com.cooked.app` (configured in `app.json`)
+
+**Deep Linking**: App Links configured for:
+- `https://cooked.app/group/*`
+- `https://cooked.app/join/*`
+- `https://cooked.app/recap/*`
+- Same paths for `www.cooked.app`
+
+**Permissions**: Configured in AndroidManifest.xml:
+- Internet (required)
+- Camera (for proof photos)
+- Photo library (for image selection)
+- Notifications (Android 13+ requires runtime permission)
+
+### Android Build Profiles
+
+Configured in `eas.json`:
+- **development**: APK for development testing
+- **preview**: APK for internal testing
+- **production**: AAB for Google Play Store
+
+### Android Testing
+
+See `ANDROID-PORT-MANUAL-CHECKLIST.md` for comprehensive testing checklist.
+
+**Quick Test Commands:**
+```bash
+# Run on Android emulator (requires Android Studio)
+npx expo run:android
+
+# Run on connected device
+npx expo run:android --device
+
+# Build APK for testing
+eas build --platform android --profile development
+```
+
+### Platform-Specific Code
+
+Use `Platform.OS` checks for platform-specific behavior:
+```typescript
+import { Platform } from 'react-native';
+
+if (Platform.OS === 'android') {
+  // Android-specific code
+}
+```
+
+**Known Platform Differences:**
+- Keyboard behavior: Android uses `adjustResize`, iOS uses `padding`
+- Back button: Android has hardware back button
+- Permissions: Android 13+ requires runtime permissions
+- Deep linking: Android uses App Links (vs iOS Universal Links)

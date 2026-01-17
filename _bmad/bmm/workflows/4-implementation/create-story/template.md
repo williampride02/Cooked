@@ -14,6 +14,22 @@ so that {{benefit}}.
 
 1. [Add acceptance criteria from epics/PRD]
 
+## Platform Requirements
+
+- [ ] iOS
+- [ ] Android
+- [ ] Web
+
+**Platform-Specific Notes:**
+- iOS: [any iOS-specific requirements or considerations]
+- Android: [any Android-specific requirements or considerations]
+- Web: [any web-specific requirements or considerations]
+
+**Platform Status:** (Updated automatically by platform-parity workflow)
+- iOS: [implemented/pending/not-applicable/blocked]
+- Android: [implemented/pending/not-applicable/blocked]
+- Web: [implemented/pending/not-applicable/blocked]
+
 ## Tasks / Subtasks
 
 - [ ] Task 1 (AC: #)

@@ -25,6 +25,13 @@
 #   - optional: Can be completed but not required
 #   - done: Retrospective has been completed
 #
+# Platform Status (optional):
+#   - platforms: Platform implementation status
+#     - ios: implemented/pending/not-applicable/blocked
+#     - android: implemented/pending/not-applicable/blocked
+#     - web: implemented/pending/not-applicable/blocked
+#   - platform_notes: Optional notes about platform-specific considerations
+#
 # WORKFLOW NOTES:
 # ===============
 # - Epic transitions to 'in-progress' automatically when first story is created
@@ -117,3 +124,12 @@ development_status:
   web-6-weekly-recaps: backlog  # View and share weekly recaps
   web-7-group-invites-join-requests: review  # Secure invite links + join request approval
   epic-web-retrospective: optional
+
+  # Epic 8: Android Porting (5 stories)
+  epic-8: backlog
+  8-1-android-native-project-setup: backlog
+  8-2-android-core-features-testing: backlog
+  8-3-android-platform-specific-features: backlog
+  8-4-android-build-and-distribution: backlog
+  8-5-android-qa-and-device-testing: backlog
+  epic-8-retrospective: optional
