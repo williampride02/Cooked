@@ -19,7 +19,7 @@ ALTER TABLE groups
 
 -- Generate invite_token for existing groups
 UPDATE groups
-SET invite_token = encode(gen_random_bytes(24), 'base64url')
+SET invite_token = encode(extensions.gen_random_bytes(24), 'hex')
 WHERE invite_token IS NULL;
 
 -- Make invite_token NOT NULL after backfilling
@@ -40,11 +40,15 @@ CREATE TABLE IF NOT EXISTS group_join_requests (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'denied')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   reviewed_at TIMESTAMPTZ,
-  reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
-  UNIQUE (group_id, requester_id, status) WHERE status = 'pending'
+  reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Indexes for join requests
+-- Prevent duplicate pending requests per user/group
+CREATE UNIQUE INDEX IF NOT EXISTS group_join_requests_pending_unique_idx
+  ON group_join_requests (group_id, requester_id)
+  WHERE status = 'pending';
+
 CREATE INDEX IF NOT EXISTS idx_join_requests_group ON group_join_requests(group_id);
 CREATE INDEX IF NOT EXISTS idx_join_requests_requester ON group_join_requests(requester_id);
 CREATE INDEX IF NOT EXISTS idx_join_requests_status ON group_join_requests(status) WHERE status = 'pending';
@@ -388,7 +392,7 @@ BEGIN
   END IF;
 
   -- Generate new token
-  new_invite_token := encode(gen_random_bytes(24), 'base64url');
+  new_invite_token := encode(extensions.gen_random_bytes(24), 'hex');
 
   -- Update group with new token
   UPDATE groups
