@@ -130,19 +130,19 @@ export function useInvites(): UseInvitesReturn {
           const errorMsg = result.message || 'Failed to join group';
           setError(errorMsg);
           return {
-            groupId: result.group_id || '',
+            groupId: result.result_group_id || '',
             success: false,
             message: errorMsg,
           };
         }
         
-        if (!result.group_id) {
+        if (!result.result_group_id) {
           setError('Failed to join group - no group ID returned');
           return null;
         }
         
         return {
-          groupId: result.group_id,
+          groupId: result.result_group_id,
           success: result.success,
           message: result.message || 'Successfully joined group',
         };
