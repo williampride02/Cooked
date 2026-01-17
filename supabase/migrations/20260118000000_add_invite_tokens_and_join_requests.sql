@@ -82,9 +82,12 @@ END;
 $$;
 
 -- Function: Join group by invite token (requires auth)
-CREATE OR REPLACE FUNCTION join_group_by_invite_token(invite_token_param TEXT)
+-- Note: Using result_group_id instead of group_id to avoid ambiguous column reference
+DROP FUNCTION IF EXISTS join_group_by_invite_token(TEXT);
+
+CREATE FUNCTION join_group_by_invite_token(invite_token_param TEXT)
 RETURNS TABLE (
-  group_id UUID,
+  result_group_id UUID,
   success BOOLEAN,
   message TEXT
 )
@@ -97,11 +100,19 @@ DECLARE
   current_user_id UUID;
   existing_member_count INTEGER;
   max_members INTEGER := 10;
+  token_prefix TEXT;
 BEGIN
+  -- Sanitize token for logging (first 10 chars only)
+  token_prefix := LEFT(invite_token_param, 10);
+  RAISE LOG '[JOIN_TOKEN] Function called with token: %...', token_prefix;
+  
   -- Get current user
   current_user_id := auth.uid();
+  RAISE LOG '[JOIN_TOKEN] auth.uid() = %', current_user_id;
+  
   IF current_user_id IS NULL THEN
-    RETURN QUERY SELECT NULL::UUID AS group_id, FALSE AS success, 'You must be logged in to join a group'::TEXT AS message;
+    RAISE LOG '[JOIN_TOKEN] No authenticated user, returning error';
+    RETURN QUERY SELECT NULL::UUID AS result_group_id, FALSE AS success, 'You must be logged in to join a group'::TEXT AS message;
     RETURN;
   END IF;
 
@@ -109,37 +120,46 @@ BEGIN
   SELECT id INTO target_group_id
   FROM groups
   WHERE invite_token = invite_token_param;
+  
+  RAISE LOG '[JOIN_TOKEN] Group lookup result: group_id = %', target_group_id;
 
   IF target_group_id IS NULL THEN
-    RETURN QUERY SELECT NULL::UUID AS group_id, FALSE AS success, 'Invalid invite link'::TEXT AS message;
+    RAISE LOG '[JOIN_TOKEN] Invalid invite token, returning error';
+    RETURN QUERY SELECT NULL::UUID AS result_group_id, FALSE AS success, 'Invalid invite link'::TEXT AS message;
     RETURN;
   END IF;
 
-  -- Check if already a member
+  -- Check if already a member (fully qualify column references)
   IF EXISTS (
-    SELECT 1 FROM group_members
-    WHERE group_id = target_group_id AND user_id = current_user_id
+    SELECT 1 FROM group_members gm
+    WHERE gm.group_id = target_group_id AND gm.user_id = current_user_id
   ) THEN
-    RETURN QUERY SELECT target_group_id AS group_id, TRUE AS success, 'You are already a member of this group'::TEXT AS message;
+    RAISE LOG '[JOIN_TOKEN] User % is already a member of group %', current_user_id, target_group_id;
+    RETURN QUERY SELECT target_group_id AS result_group_id, TRUE AS success, 'You are already a member of this group'::TEXT AS message;
     RETURN;
   END IF;
 
-  -- Check member count
+  -- Check member count (fully qualify column reference)
   SELECT COUNT(*) INTO existing_member_count
-  FROM group_members
-  WHERE group_id = target_group_id;
+  FROM group_members gm
+  WHERE gm.group_id = target_group_id;
+  
+  RAISE LOG '[JOIN_TOKEN] Current member count: %, max: %', existing_member_count, max_members;
 
   IF existing_member_count >= max_members THEN
-    RETURN QUERY SELECT target_group_id AS group_id, FALSE AS success, 'This group is full (max 10 members)'::TEXT AS message;
+    RAISE LOG '[JOIN_TOKEN] Group is full, returning error';
+    RETURN QUERY SELECT target_group_id AS result_group_id, FALSE AS success, 'This group is full (max 10 members)'::TEXT AS message;
     RETURN;
   END IF;
 
   -- Add user as member
+  RAISE LOG '[JOIN_TOKEN] Adding user % to group % as member', current_user_id, target_group_id;
   INSERT INTO group_members (group_id, user_id, role)
   VALUES (target_group_id, current_user_id, 'member')
   ON CONFLICT (group_id, user_id) DO NOTHING;
-
-  RETURN QUERY SELECT target_group_id AS group_id, TRUE AS success, 'Successfully joined group'::TEXT AS message;
+  
+  RAISE LOG '[JOIN_TOKEN] Successfully added user to group, returning success';
+  RETURN QUERY SELECT target_group_id AS result_group_id, TRUE AS success, 'Successfully joined group'::TEXT AS message;
 END;
 $$;
 
