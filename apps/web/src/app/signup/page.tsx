@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 // Force dynamic rendering (don't pre-render at build time)
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,6 +17,22 @@ export default function SignupPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Helper to get redirect destination after signup
+  const getRedirectPath = () => {
+    // Check for next query param
+    const next = searchParams?.get('next');
+    if (next) {
+      return next;
+    }
+    // Check for pending invite token in localStorage
+    const pendingToken = typeof window !== 'undefined' ? localStorage.getItem('pendingInviteToken') : null;
+    if (pendingToken) {
+      return `/join/${pendingToken}`;
+    }
+    // Default to login with success message
+    return '/login?success=Account created! Please log in.';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,9 +113,9 @@ export default function SignupPage() {
         }
       }
 
-      console.log('[SIGNUP] Signup successful! Redirecting to login...');
-      // 4. Redirect to login
-      router.push('/login?success=Account created! Please log in.');
+      console.log('[SIGNUP] Signup successful! Redirecting...');
+      // 4. Redirect to next path or login
+      router.push(getRedirectPath());
     } catch (err: any) {
       // Handle specific error cases
       if (err.message?.includes('already registered') || err.message?.includes('already exists')) {

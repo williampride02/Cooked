@@ -11,7 +11,7 @@ tags:
   - epic-web
   - web-app
   - pacts
-status: ready-for-dev
+status: review
 created: 2026-01-17
 updated: 2026-01-17
 epic: web
@@ -24,7 +24,7 @@ related:
 
 # Story Web.2: Pacts Management
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -101,92 +101,92 @@ So that **I can set up accountability pacts from my browser**.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Create usePacts Hook for Web**
-  - [ ] Create `apps/web/src/hooks/usePacts.ts`
-  - [ ] Implement `fetchGroupPacts` function (fetch all pacts for a group)
-  - [ ] Implement `fetchPact` function (fetch single pact with participants)
-  - [ ] Implement `createPact` function (create new pact with participants)
-  - [ ] Implement `updatePact` function (update pact settings, add participants)
-  - [ ] Implement `archivePact` function (archive pact, preserve history)
-  - [ ] Add error handling and loading states
-  - [ ] Reuse types from `@cooked/shared` package
+- [x] **Task 1: Create usePacts Hook for Web**
+  - [x] Create `apps/web/src/hooks/usePacts.ts`
+  - [x] Implement `fetchGroupPacts` function (fetch all pacts for a group)
+  - [x] Implement `fetchPact` function (fetch single pact with participants)
+  - [x] Implement `createPact` function (create new pact with participants)
+  - [x] Implement `updatePact` function (update pact settings, add participants)
+  - [x] Implement `archivePact` function (archive pact, preserve history)
+  - [x] Add error handling and loading states
+  - [x] Reuse types from `@cooked/shared` package
 
-- [ ] **Task 2: Create Pacts List Page**
-  - [ ] Create `apps/web/src/app/group/[id]/pacts/page.tsx`
-  - [ ] Add header with "My Pacts" title and back button
-  - [ ] Add "Create Pact" button
-  - [ ] Display pacts list with sections:
-    - [ ] "Due Today" section (pacts due today, not checked in)
-    - [ ] "Completed Today" section (pacts already checked in)
-    - [ ] "Not Due Today" section (other active pacts)
-  - [ ] Show pact details: name, frequency, roast level emoji, status badge
-  - [ ] Add empty state when no pacts exist
-  - [ ] Add refresh functionality
-  - [ ] Make pacts clickable to navigate to detail view
+- [x] **Task 2: Create Pacts List Page**
+  - [x] Create `apps/web/src/app/group/[id]/pacts/page.tsx`
+  - [x] Add header with "My Pacts" title and back button
+  - [x] Add "Create Pact" button
+  - [x] Display pacts list with sections:
+    - [x] "Due Today" section (pacts due today, not checked in)
+    - [x] "Completed Today" section (pacts already checked in)
+    - [x] "Not Due Today" section (other active pacts)
+  - [x] Show pact details: name, frequency, roast level emoji, status badge
+  - [x] Add empty state when no pacts exist
+  - [x] Add refresh functionality
+  - [x] Make pacts clickable to navigate to detail view
 
-- [ ] **Task 3: Create Pact Detail Page**
-  - [ ] Create `apps/web/src/app/group/[id]/pact/[pactId]/page.tsx`
-  - [ ] Display pact header with name and description
-  - [ ] Display pact settings (frequency, roast level, proof required, pact type)
-  - [ ] Display participant list with avatars and names
-  - [ ] Add "View Statistics" toggle/button
-  - [ ] Add "Edit" button (only for creator)
-  - [ ] Add "Archive" button (only for creator)
-  - [ ] Add back navigation
+- [x] **Task 3: Create Pact Detail Page**
+  - [x] Create `apps/web/src/app/group/[id]/pact/[pactId]/page.tsx`
+  - [x] Display pact header with name and description
+  - [x] Display pact settings (frequency, roast level, proof required, pact type)
+  - [x] Display participant list with avatars and names
+  - [x] Add "View Statistics" toggle/button
+  - [x] Add "Edit" button (only for creator)
+  - [x] Add "Archive" button (only for creator)
+  - [x] Add back navigation
 
-- [ ] **Task 4: Create Pact Statistics Component**
-  - [ ] Create `apps/web/src/components/pacts/PactStats.tsx`
-  - [ ] Display overall completion rate
-  - [ ] Display participant stats table:
-    - [ ] Participant name and avatar
-    - [ ] Total check-ins (success + fold)
-    - [ ] Success count
-    - [ ] Fold count
-    - [ ] Completion rate percentage
-    - [ ] Current streak
-    - [ ] Longest streak
-  - [ ] Style with Tailwind CSS matching design system
+- [x] **Task 4: Create Pact Statistics Component**
+  - [x] Create `apps/web/src/components/pacts/PactStats.tsx`
+  - [x] Display overall completion rate
+  - [x] Display participant stats table:
+    - [x] Participant name and avatar
+    - [x] Total check-ins (success + fold)
+    - [x] Success count
+    - [x] Fold count
+    - [x] Completion rate percentage
+    - [x] Current streak
+    - [x] Longest streak
+  - [x] Style with Tailwind CSS matching design system
 
-- [ ] **Task 5: Create Create Pact Page**
-  - [ ] Create `apps/web/src/app/group/[id]/create-pact/page.tsx`
-  - [ ] Add form fields:
-    - [ ] Pact name input (2-50 chars, with counter)
-    - [ ] Description textarea (optional)
-    - [ ] Frequency selector (daily, weekly, custom)
-    - [ ] Custom frequency day picker (if custom selected)
-    - [ ] Roast level selector (1-3 with emoji indicators)
-    - [ ] Proof required selector (none, optional, required)
-    - [ ] Pact type selector (individual, group, relay)
-    - [ ] Participant multi-select (from group members)
-    - [ ] Relay day assignments (if relay type, per participant)
-  - [ ] Add form validation
-  - [ ] Add error handling
-  - [ ] Add loading states
-  - [ ] Navigate to pact detail on success
-  - [ ] Check free tier limit before allowing creation
+- [x] **Task 5: Create Create Pact Page**
+  - [x] Create `apps/web/src/app/group/[id]/create-pact/page.tsx`
+  - [x] Add form fields:
+    - [x] Pact name input (2-50 chars, with counter)
+    - [x] Description textarea (optional)
+    - [x] Frequency selector (daily, weekly, custom)
+    - [x] Custom frequency day picker (if custom selected)
+    - [x] Roast level selector (1-3 with emoji indicators)
+    - [x] Proof required selector (none, optional, required)
+    - [x] Pact type selector (individual, group, relay)
+    - [x] Participant multi-select (from group members)
+    - [x] Relay day assignments (if relay type, per participant)
+  - [x] Add form validation
+  - [x] Add error handling
+  - [x] Add loading states
+  - [x] Navigate to pact detail on success
+  - [x] Check free tier limit before allowing creation
 
-- [ ] **Task 6: Create Edit Pact Page**
-  - [ ] Create `apps/web/src/app/group/[id]/pact/[pactId]/edit/page.tsx`
-  - [ ] Pre-fill form with existing pact data
-  - [ ] Allow editing: name, description, proof requirements
-  - [ ] Allow adding new participants (not removing)
-  - [ ] Allow updating relay day assignments
-  - [ ] Add save and cancel buttons
-  - [ ] Navigate back to pact detail on save
-  - [ ] Show confirmation dialog on cancel if changes made
+- [x] **Task 6: Create Edit Pact Page**
+  - [x] Create `apps/web/src/app/group/[id]/pact/[pactId]/edit/page.tsx`
+  - [x] Pre-fill form with existing pact data
+  - [x] Allow editing: name, description, proof requirements
+  - [x] Allow adding new participants (not removing)
+  - [x] Allow updating relay day assignments
+  - [x] Add save and cancel buttons
+  - [x] Navigate back to pact detail on save
+  - [x] Show confirmation dialog on cancel if changes made
 
-- [ ] **Task 7: Create Pact Limit Hook**
-  - [ ] Create `apps/web/src/hooks/usePactLimit.ts`
-  - [ ] Fetch current pact count for group
-  - [ ] Check subscription status (free vs premium)
-  - [ ] Return: currentCount, maxCount, canCreate, isLoading
-  - [ ] Use FREE_TIER_LIMITS from `@cooked/shared`
+- [x] **Task 7: Create Pact Limit Hook**
+  - [x] Create `apps/web/src/hooks/usePactLimit.ts`
+  - [x] Fetch current pact count for group
+  - [x] Check subscription status (free vs premium)
+  - [x] Return: currentCount, maxCount, canCreate, isLoading
+  - [x] Use FREE_TIER_LIMITS from `@cooked/shared`
 
-- [ ] **Task 8: Update Group Feed Navigation**
-  - [ ] Update `apps/web/src/app/group/[id]/page.tsx`
-  - [ ] Update "Check In" button to navigate to `/group/[id]/pacts`
-  - [ ] Update FAB "Create Pact" button to navigate to `/group/[id]/create-pact`
-  - [ ] Add navigation to pacts list from group feed
+- [x] **Task 8: Update Group Feed Navigation**
+  - [x] Update `apps/web/src/app/group/[id]/page.tsx`
+  - [x] Update "Check In" button to navigate to `/group/[id]/pacts`
+  - [x] Update FAB "Create Pact" button to navigate to `/group/[id]/create-pact`
+  - [x] Add navigation to pacts list from group feed
 
 ## Dev Notes
 
@@ -276,4 +276,47 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250514)
 
 ### Completion Notes List
 
+**Implementation Summary:**
+- Created comprehensive pact management system for web app matching mobile app functionality
+- Implemented all 8 tasks with full feature parity
+- All acceptance criteria satisfied:
+  - AC1: View Pacts List - Implemented with sections for due today, completed, and not due
+  - AC2: Create Pact Form - Full form with all fields including relay day assignments
+  - AC3: Pact Creation Success - Navigates to detail view on success
+  - AC4: View Pact Details - Complete detail page with all information
+  - AC5: Edit Pact - Full edit functionality for creators
+  - AC6: Archive Pact - Archive with confirmation dialog
+  - AC7: Pact Statistics - Comprehensive stats component with participant breakdown
+  - AC8: Free Tier Limit - Enforced via usePactLimit hook
+
+**Key Features:**
+- Full CRUD operations for pacts (create, read, update, archive)
+- Support for all pact types (individual, group, relay)
+- Relay day assignment interface
+- Free tier limit enforcement
+- Statistics display with completion rates and streaks
+- Responsive design matching mobile app patterns
+
+**Technical Notes:**
+- Reused shared types from `@cooked/shared` package
+- Followed same patterns as mobile app for consistency
+- Used Tailwind CSS for styling matching design system
+- Implemented proper error handling and loading states
+- All hooks follow web app patterns (using `supabase.auth.getUser()` instead of Zustand)
+
 ### File List
+
+**New Files:**
+- `apps/web/src/hooks/usePacts.ts` - Main pact management hook
+- `apps/web/src/hooks/usePactLimit.ts` - Free tier limit checking hook
+- `apps/web/src/hooks/usePactsWithStatus.ts` - Hook for fetching pacts with check-in status
+- `apps/web/src/hooks/usePactStats.ts` - Hook for fetching pact statistics
+- `apps/web/src/utils/pactUtils.ts` - Utility functions for pact logic (isPactDueToday, getTodayDate)
+- `apps/web/src/app/group/[id]/pacts/page.tsx` - Pacts list page
+- `apps/web/src/app/group/[id]/pact/[pactId]/page.tsx` - Pact detail page
+- `apps/web/src/app/group/[id]/create-pact/page.tsx` - Create pact form page
+- `apps/web/src/app/group/[id]/pact/[pactId]/edit/page.tsx` - Edit pact form page
+- `apps/web/src/components/pacts/PactStats.tsx` - Pact statistics display component
+
+**Modified Files:**
+- `apps/web/src/app/group/[id]/page.tsx` - Updated navigation (already had correct routes)

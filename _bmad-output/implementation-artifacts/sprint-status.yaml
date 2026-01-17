@@ -110,9 +110,10 @@ development_status:
   # Epic Web: Web Application (stories for web app features)
   epic-web: in-progress
   web-1-dashboard-groups-feed: done  # Dashboard, groups list, create/join, feed display
-  web-2-pacts-management: ready-for-dev  # View, create, edit, archive pacts
+  web-2-pacts-management: review  # View, create, edit, archive pacts
   web-3-check-in-interface: backlog  # Check-in success/fold with proof
   web-4-real-time-feed-updates: backlog  # Real-time feed via WebSocket
   web-5-roast-threads: backlog  # View and participate in roast threads
   web-6-weekly-recaps: backlog  # View and share weekly recaps
+  web-7-group-invites-join-requests: review  # Secure invite links + join request approval
   epic-web-retrospective: optional

@@ -34,6 +34,22 @@ function LoginForm() {
     }
   }, [searchParams]);
 
+  // Helper to get redirect destination after login
+  const getRedirectPath = () => {
+    // Check for next query param
+    const next = searchParams.get('next');
+    if (next) {
+      return next;
+    }
+    // Check for pending invite token in localStorage
+    const pendingToken = localStorage.getItem('pendingInviteToken');
+    if (pendingToken) {
+      return `/join/${pendingToken}`;
+    }
+    // Default to dashboard
+    return '/dashboard';
+  };
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -48,7 +64,8 @@ function LoginForm() {
 
       if (authError) throw authError;
 
-      router.push('/dashboard');
+      // Redirect to next path or pending invite, or dashboard
+      router.push(getRedirectPath());
     } catch (err: any) {
       setError(err.message || 'Failed to log in');
     } finally {
@@ -62,7 +79,8 @@ function LoginForm() {
   };
 
   const handlePhoneVerifySuccess = async (_otpCode: string) => {
-    router.push('/dashboard');
+    // Redirect to next path or pending invite, or dashboard
+    router.push(getRedirectPath());
   };
 
   const handlePhoneResend = () => {
