@@ -85,14 +85,34 @@ export function useInvites(): UseInvitesReturn {
         });
 
         if (rpcError) {
-          console.error('Join by token error:', rpcError);
-          const errorMessage = rpcError.message || rpcError.error_description || JSON.stringify(rpcError) || 'Failed to join group';
+          console.error('Join by token RPC error:', rpcError);
+          // Try to extract error message from various possible properties
+          let errorMessage = 'Failed to join group';
+          if (typeof rpcError === 'string') {
+            errorMessage = rpcError;
+          } else if (rpcError?.message) {
+            errorMessage = rpcError.message;
+          } else if (rpcError?.error_description) {
+            errorMessage = rpcError.error_description;
+          } else if (rpcError?.error) {
+            errorMessage = rpcError.error;
+          } else {
+            // If error object is empty, try to stringify it
+            try {
+              const errorStr = JSON.stringify(rpcError);
+              if (errorStr !== '{}') {
+                errorMessage = errorStr;
+              }
+            } catch {
+              // If stringify fails, use default
+            }
+          }
           setError(errorMessage);
           return null;
         }
 
         if (!data || data.length === 0) {
-          setError('Failed to join group');
+          setError('Failed to join group - no data returned');
           return null;
         }
 
@@ -100,22 +120,29 @@ export function useInvites(): UseInvitesReturn {
         
         // If the function returned an error (success: false), return it with the message
         if (!result.success) {
-          setError(result.message || 'Failed to join group');
+          const errorMsg = result.message || 'Failed to join group';
+          setError(errorMsg);
           return {
             groupId: result.group_id || '',
             success: false,
-            message: result.message || 'Failed to join group',
+            message: errorMsg,
           };
         }
         
+        if (!result.group_id) {
+          setError('Failed to join group - no group ID returned');
+          return null;
+        }
+        
         return {
-          groupId: result.group_id || '',
+          groupId: result.group_id,
           success: result.success,
-          message: result.message,
+          message: result.message || 'Successfully joined group',
         };
       } catch (err) {
         console.error('Join by token exception:', err);
-        setError('Failed to join group');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to join group';
+        setError(errorMessage);
         return null;
       } finally {
         setIsLoading(false);
