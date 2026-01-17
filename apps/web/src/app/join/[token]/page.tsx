@@ -54,12 +54,13 @@ export default function JoinByTokenPage() {
     if (!token) return;
 
     const result = await joinByToken(token);
-    if (result && result.success) {
+    if (result && result.success && result.groupId) {
       // Clear pending token
       localStorage.removeItem('pendingInviteToken');
       // Redirect to group feed
       router.push(`/group/${result.groupId}`);
     }
+    // If result exists but success is false, error is already set by the hook
   };
 
   // Show loading while checking auth

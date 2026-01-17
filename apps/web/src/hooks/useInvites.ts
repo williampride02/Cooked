@@ -86,7 +86,8 @@ export function useInvites(): UseInvitesReturn {
 
         if (rpcError) {
           console.error('Join by token error:', rpcError);
-          setError(rpcError.message || 'Failed to join group');
+          const errorMessage = rpcError.message || rpcError.error_description || JSON.stringify(rpcError) || 'Failed to join group';
+          setError(errorMessage);
           return null;
         }
 
@@ -96,8 +97,19 @@ export function useInvites(): UseInvitesReturn {
         }
 
         const result = data[0];
+        
+        // If the function returned an error (success: false), return it with the message
+        if (!result.success) {
+          setError(result.message || 'Failed to join group');
+          return {
+            groupId: result.group_id || '',
+            success: false,
+            message: result.message || 'Failed to join group',
+          };
+        }
+        
         return {
-          groupId: result.group_id,
+          groupId: result.group_id || '',
           success: result.success,
           message: result.message,
         };
