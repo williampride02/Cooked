@@ -80,12 +80,19 @@ export function useInvites(): UseInvitesReturn {
       setError(null);
 
       try {
+        console.log('[JOIN] Calling RPC with token:', token?.substring(0, 10) + '...');
+        
         const { data, error: rpcError } = await supabase.rpc('join_group_by_invite_token', {
           invite_token_param: token,
         });
 
+        console.log('[JOIN] RPC response:', { data, error: rpcError, hasData: !!data, hasError: !!rpcError });
+
         if (rpcError) {
           console.error('Join by token RPC error:', rpcError);
+          console.error('Error type:', typeof rpcError);
+          console.error('Error keys:', rpcError ? Object.keys(rpcError) : 'no keys');
+          
           // Try to extract error message from various possible properties
           let errorMessage = 'Failed to join group';
           if (typeof rpcError === 'string') {
@@ -96,15 +103,15 @@ export function useInvites(): UseInvitesReturn {
             errorMessage = rpcError.error_description;
           } else if (rpcError?.error) {
             errorMessage = rpcError.error;
+          } else if (rpcError?.code) {
+            errorMessage = `Error ${rpcError.code}: ${rpcError.message || 'Unknown error'}`;
           } else {
-            // If error object is empty, try to stringify it
-            try {
-              const errorStr = JSON.stringify(rpcError);
-              if (errorStr !== '{}') {
-                errorMessage = errorStr;
-              }
-            } catch {
-              // If stringify fails, use default
+            // If error object is empty, check network/connection issues
+            const errorStr = JSON.stringify(rpcError);
+            if (errorStr === '{}') {
+              errorMessage = 'Network error or authentication issue. Please check your connection and try again.';
+            } else {
+              errorMessage = errorStr;
             }
           }
           setError(errorMessage);
