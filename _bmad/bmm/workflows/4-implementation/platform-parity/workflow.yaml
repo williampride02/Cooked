@@ -1,0 +1,39 @@
+# Platform Parity - Cross-Platform Feature Tracking
+name: platform-parity
+description: "Analyze stories/epics for platform coverage (iOS/Android/Web) and identify gaps to achieve platform parity"
+author: "BMad"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+document_output_language: "{config_source}:document_output_language"
+date: system-generated
+implementation_artifacts: "{config_source}:implementation_artifacts"
+planning_artifacts: "{config_source}:planning_artifacts"
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/4-implementation/platform-parity"
+instructions: "{installed_path}/instructions.md"
+checklist: "{installed_path}/checklist.md"
+
+# Inputs
+variables:
+  sprint_status_file: "{implementation_artifacts}/sprint-status.yaml"
+  story_file: "" # Optional: specific story to check, otherwise checks all
+  epic_key: "" # Optional: specific epic to check
+
+# Smart input file references
+input_file_patterns:
+  sprint_status:
+    description: "Sprint status file with platform tracking"
+    whole: "{implementation_artifacts}/sprint-status.yaml"
+    load_strategy: "FULL_LOAD"
+  story:
+    description: "Story file to analyze (if story_file specified)"
+    whole: "{implementation_artifacts}/stories/{story_file}.md"
+    load_strategy: "FULL_LOAD"
+
+# Standalone so IDE commands get generated
+standalone: true

@@ -401,6 +401,32 @@
     </action>
 
     <output>💡 **Tip:** For best results, run `code-review` using a **different** LLM than the one that implemented this story.</output>
+    
+    <!-- Platform Parity Check Prompt -->
+    <check if="story has Platform Requirements section">
+      <action>Check if story Platform Requirements section indicates multiple platforms</action>
+      <check if="story targets multiple platforms (iOS/Android/Web)">
+        <output>
+📱 **Platform Parity Check**
+
+This story targets multiple platforms. Consider running platform parity check to ensure all platforms are covered:
+
+Run: `/bmad:bmm:workflows:platform-parity --story_file={{story_key}}`
+
+This will:
+- Analyze platform coverage for this story
+- Identify any missing platform implementations
+- Update sprint-status.yaml with platform status
+- Recommend follow-up stories for platform ports if needed
+        </output>
+        <ask>Would you like to run platform parity check now? [y/n]:</ask>
+        <check if="user chooses 'y' or 'yes'">
+          <output>Running platform parity check...</output>
+          <action>HALT - User should run `/bmad:bmm:workflows:platform-parity --story_file={{story_key}}`</action>
+        </check>
+      </check>
+    </check>
+    
     <check if="{sprint_status} file exists">
       <action>Suggest checking {sprint_status} to see project progress</action>
     </check>

@@ -45,6 +45,11 @@ Run `/bmad:bmm:workflows:sprint-planning` to generate it, then rerun sprint-stat
   <action>Map legacy epic status "contexted" → "in-progress"</action>
   <action>Count epic statuses: backlog, in-progress, done</action>
   <action>Count retrospective statuses: optional, done</action>
+  <action>Parse platform status for stories (if present):</action>
+  - Extract `platforms` section from each story
+  - Count stories with platform tracking
+  - Count platform gaps (stories with pending/blocked platforms)
+  - Identify stories missing platform tracking
 
 <action>Validate all statuses against known values:</action>
 
@@ -86,6 +91,8 @@ Enter corrections (e.g., "1=in-progress, 2=backlog") or "skip" to continue witho
 - IF `generated` timestamp is more than 7 days old: warn "sprint-status.yaml may be stale"
 - IF any story key doesn't match an epic pattern (e.g., story "5-1-..." but no "epic-5"): warn "orphaned story detected"
 - IF any epic has status in-progress but has no associated stories: warn "in-progress epic has no stories"
+- IF any story has platform gaps (pending/blocked platforms): suggest `/bmad:bmm:workflows:platform-parity`
+- IF stories missing platform tracking: note "some stories missing platform status"
   </step>
 
 <step n="3" goal="Select next action recommendation">
@@ -112,6 +119,15 @@ Enter corrections (e.g., "1=in-progress, 2=backlog") or "skip" to continue witho
 
 **Epics:** backlog {{epic_backlog}}, in-progress {{epic_in_progress}}, done {{epic_done}}
 
+{{#if platform_tracking_count}}
+**Platform Coverage:**
+- Stories with platform tracking: {{platform_tracking_count}}/{{total_stories}}
+- Platform gaps identified: {{platform_gap_count}}
+{{#if platform_gap_count > 0}}
+- ⚠️ Run `/bmad:bmm:workflows:platform-parity` to analyze gaps
+{{/if}}
+{{/if}}
+
 **Next Recommendation:** /bmad:bmm:workflows:{{next_workflow_id}} ({{next_story_id}})
 
 {{#if risks}}
@@ -129,8 +145,9 @@ Enter corrections (e.g., "1=in-progress, 2=backlog") or "skip" to continue witho
   <ask>Pick an option:
 1) Run recommended workflow now
 2) Show all stories grouped by status
-3) Show raw sprint-status.yaml
-4) Exit
+3) Show platform parity status
+4) Show raw sprint-status.yaml
+5) Exit
 Choice:</ask>
 
   <check if="choice == 1">
@@ -150,10 +167,36 @@ If the command targets a story, set `story_key={{next_story_id}}` when prompted.
   </check>
 
   <check if="choice == 3">
-    <action>Display the full contents of {sprint_status_file}</action>
+    <action>Display platform parity summary:</action>
+    <output>
+### Platform Parity Summary
+
+**iOS Coverage:**
+- Implemented: {{ios_implemented_count}}
+- Pending: {{ios_pending_count}}
+- Not Applicable: {{ios_na_count}}
+
+**Android Coverage:**
+- Implemented: {{android_implemented_count}}
+- Pending: {{android_pending_count}}
+- Not Applicable: {{android_na_count}}
+
+**Web Coverage:**
+- Implemented: {{web_implemented_count}}
+- Pending: {{web_pending_count}}
+- Not Applicable: {{web_na_count}}
+
+**Stories Missing Platform Tracking:** {{stories_no_tracking_count}}
+
+Run `/bmad:bmm:workflows:platform-parity` for detailed analysis.
+    </output>
   </check>
 
   <check if="choice == 4">
+    <action>Display the full contents of {sprint_status_file}</action>
+  </check>
+
+  <check if="choice == 5">
     <action>Exit workflow</action>
   </check>
 </step>
