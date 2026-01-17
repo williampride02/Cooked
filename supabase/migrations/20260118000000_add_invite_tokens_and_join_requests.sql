@@ -101,7 +101,7 @@ BEGIN
   -- Get current user
   current_user_id := auth.uid();
   IF current_user_id IS NULL THEN
-    RETURN QUERY SELECT NULL::UUID, FALSE, 'You must be logged in to join a group'::TEXT;
+    RETURN QUERY SELECT NULL::UUID AS group_id, FALSE AS success, 'You must be logged in to join a group'::TEXT AS message;
     RETURN;
   END IF;
 
@@ -111,7 +111,7 @@ BEGIN
   WHERE invite_token = invite_token_param;
 
   IF target_group_id IS NULL THEN
-    RETURN QUERY SELECT NULL::UUID, FALSE, 'Invalid invite link'::TEXT;
+    RETURN QUERY SELECT NULL::UUID AS group_id, FALSE AS success, 'Invalid invite link'::TEXT AS message;
     RETURN;
   END IF;
 
@@ -120,7 +120,7 @@ BEGIN
     SELECT 1 FROM group_members
     WHERE group_id = target_group_id AND user_id = current_user_id
   ) THEN
-    RETURN QUERY SELECT target_group_id, TRUE, 'You are already a member of this group'::TEXT;
+    RETURN QUERY SELECT target_group_id AS group_id, TRUE AS success, 'You are already a member of this group'::TEXT AS message;
     RETURN;
   END IF;
 
@@ -130,7 +130,7 @@ BEGIN
   WHERE group_id = target_group_id;
 
   IF existing_member_count >= max_members THEN
-    RETURN QUERY SELECT target_group_id, FALSE, 'This group is full (max 10 members)'::TEXT;
+    RETURN QUERY SELECT target_group_id AS group_id, FALSE AS success, 'This group is full (max 10 members)'::TEXT AS message;
     RETURN;
   END IF;
 
@@ -139,7 +139,7 @@ BEGIN
   VALUES (target_group_id, current_user_id, 'member')
   ON CONFLICT (group_id, user_id) DO NOTHING;
 
-  RETURN QUERY SELECT target_group_id, TRUE, 'Successfully joined group'::TEXT;
+  RETURN QUERY SELECT target_group_id AS group_id, TRUE AS success, 'Successfully joined group'::TEXT AS message;
 END;
 $$;
 
