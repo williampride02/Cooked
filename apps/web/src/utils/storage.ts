@@ -2,6 +2,22 @@
 
 import { supabase } from '@/lib/supabase';
 
+export async function uploadFileToBucket(params: {
+  bucket: string;
+  path: string;
+  file: File;
+  upsert?: boolean;
+}): Promise<void> {
+  const { bucket, path, file, upsert = true } = params;
+
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert,
+    contentType: file.type || 'application/octet-stream',
+  });
+
+  if (error) throw error;
+}
+
 export async function signStoragePathIfNeeded(
   bucket: string,
   pathOrUrl: string | null,
@@ -20,5 +36,9 @@ export async function signStoragePathIfNeeded(
 
 export async function signProofUrlIfNeeded(proofUrl: string | null): Promise<string | null> {
   return signStoragePathIfNeeded('proofs', proofUrl, 60 * 60);
+}
+
+export async function signRoastMediaUrlIfNeeded(mediaUrl: string | null): Promise<string | null> {
+  return signStoragePathIfNeeded('roasts', mediaUrl, 60 * 60);
 }
 

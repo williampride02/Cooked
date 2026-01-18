@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import type { ReactionEmoji } from '@cooked/shared';
+import { uploadFileToBucket, signProofUrlIfNeeded, signRoastMediaUrlIfNeeded } from '@/utils/storage';
+import { REACTION_EMOJI_OPTIONS, emojiKeyToLabel, useReactions } from '@/hooks/useReactions';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +36,7 @@ type CheckInDetail = {
   pact_id: string;
   user_id: string;
   users?: { display_name: string; avatar_url: string | null } | null;
-  pacts?: { name: string; group_id: string } | null;
+  pacts?: { name: string; group_id: string; roast_level: 1 | 2 | 3 } | null;
 };
 
 export default function RoastThreadPage() {
@@ -45,10 +48,15 @@ export default function RoastThreadPage() {
   const [checkIn, setCheckIn] = useState<CheckInDetail | null>(null);
   const [responses, setResponses] = useState<RoastResponse[]>([]);
   const [message, setMessage] = useState('');
+  const [gifUrl, setGifUrl] = useState('');
+  const [isPostingMedia, setIsPostingMedia] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [reactionByResponseId, setReactionByResponseId] = useState<Record<string, { counts: Record<ReactionEmoji, number>; myReaction: ReactionEmoji | null }>>({});
+
+  const { fetchReactionSummaries, toggleReaction, isLoading: isLoadingReactions, error: reactionsError } = useReactions();
 
   const loadThread = useCallback(async () => {
     setIsLoading(true);
@@ -74,14 +82,17 @@ export default function RoastThreadPage() {
           `
           id,status,excuse,proof_url,created_at,pact_id,user_id,
           users:user_id (display_name, avatar_url),
-          pacts:pact_id (name, group_id)
+          pacts:pact_id (name, group_id, roast_level)
         `
         )
         .eq('id', checkInId)
         .single();
 
       if (!checkInError && checkInRow) {
-        setCheckIn(checkInRow as unknown as CheckInDetail);
+        const typed = checkInRow as unknown as CheckInDetail;
+        // If proof_url is stored as a storage path, sign it for web image rendering.
+        const signedProof = await signProofUrlIfNeeded(typed.proof_url);
+        setCheckIn({ ...typed, proof_url: signedProof });
       }
 
       // Fetch responses
@@ -97,7 +108,21 @@ export default function RoastThreadPage() {
         .order('created_at', { ascending: true });
 
       if (!responseError && responseRows) {
-        setResponses(responseRows as unknown as RoastResponse[]);
+        const typed = responseRows as unknown as RoastResponse[];
+        // Sign any image paths stored in DB for rendering.
+        const signed = await Promise.all(
+          typed.map(async (r) => {
+            if (r.content_type !== 'image') return r;
+            const signedUrl = await signRoastMediaUrlIfNeeded(r.content);
+            return { ...r, content: signedUrl || r.content };
+          })
+        );
+        setResponses(signed);
+
+        // Load reactions for responses (best-effort).
+        const ids = signed.map((r) => r.id);
+        const summaries = await fetchReactionSummaries({ targetType: 'roast_response', targetIds: ids });
+        setReactionByResponseId(summaries);
       }
     } catch (e) {
       console.error('Load roast thread exception:', e);
@@ -126,7 +151,7 @@ export default function RoastThreadPage() {
     };
   }, [checkIn]);
 
-  // Realtime updates for responses
+  // Realtime updates for responses + reactions
   useEffect(() => {
     if (!thread?.id) return;
 
@@ -139,6 +164,20 @@ export default function RoastThreadPage() {
           loadThread();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'reactions' },
+        () => {
+          loadThread();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'reactions' },
+        () => {
+          loadThread();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -146,11 +185,19 @@ export default function RoastThreadPage() {
     };
   }, [loadThread, thread?.id]);
 
-  const canPost = useMemo(() => message.trim().length > 0 && thread?.status === 'open', [message, thread?.status]);
+  const roastLevel = checkIn?.pacts?.roast_level ?? 2;
+  const canTextPost = useMemo(
+    () => roastLevel >= 2 && message.trim().length > 0 && thread?.status === 'open',
+    [message, roastLevel, thread?.status]
+  );
+  const canMediaPost = useMemo(
+    () => roastLevel >= 2 && thread?.status === 'open',
+    [roastLevel, thread?.status]
+  );
 
   const handlePost = useCallback(async () => {
     if (!thread) return;
-    if (!canPost) return;
+    if (!canTextPost) return;
     setIsPosting(true);
     setError(null);
 
@@ -185,7 +232,88 @@ export default function RoastThreadPage() {
     } finally {
       setIsPosting(false);
     }
-  }, [canPost, message, thread]);
+  }, [canTextPost, message, thread]);
+
+  const handlePostGif = useCallback(async () => {
+    if (!thread) return;
+    if (!canMediaPost) return;
+    const url = gifUrl.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) {
+      setError('GIF URL must start with http(s)://');
+      return;
+    }
+
+    setIsPostingMedia(true);
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('You must be logged in to post');
+        return;
+      }
+
+      setGifUrl('');
+      const { error: insertError } = await supabase.from('roast_responses').insert({
+        thread_id: thread.id,
+        user_id: user.id,
+        content_type: 'gif',
+        content: url,
+      });
+      if (insertError) throw insertError;
+    } catch (e: any) {
+      console.error('Post gif exception:', e);
+      setError(e?.message || 'Failed to post GIF');
+    } finally {
+      setIsPostingMedia(false);
+    }
+  }, [canMediaPost, gifUrl, thread]);
+
+  const handlePostImage = useCallback(
+    async (file: File) => {
+      if (!thread) return;
+      if (!canMediaPost) return;
+      if (!file) return;
+
+      setIsPostingMedia(true);
+      setError(null);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setError('You must be logged in to post');
+          return;
+        }
+
+        const ext = file.name.split('.').pop() || 'jpg';
+        const path = `${thread.id}/${user.id}/${Date.now()}.${ext}`;
+        await uploadFileToBucket({ bucket: 'roasts', path, file, upsert: true });
+
+        const { error: insertError } = await supabase.from('roast_responses').insert({
+          thread_id: thread.id,
+          user_id: user.id,
+          content_type: 'image',
+          content: path, // store storage path; we sign when rendering
+        });
+
+        if (insertError) throw insertError;
+      } catch (e: any) {
+        console.error('Post image exception:', e);
+        setError(e?.message || 'Failed to post image');
+      } finally {
+        setIsPostingMedia(false);
+      }
+    },
+    [canMediaPost, thread]
+  );
+
+  const handleToggleReaction = useCallback(
+    async (responseId: string, emoji: ReactionEmoji) => {
+      await toggleReaction({ targetType: 'roast_response', targetId: responseId, emoji });
+      // Reload summaries for this thread quickly by reloading (simple + consistent)
+      await loadThread();
+    },
+    [loadThread, toggleReaction]
+  );
 
   const handleClose = useCallback(async () => {
     if (!thread) return;
@@ -204,6 +332,26 @@ export default function RoastThreadPage() {
     } catch (e) {
       console.error('Close thread exception:', e);
       setError('Failed to close thread');
+    }
+  }, [loadThread, thread]);
+
+  const handleMute = useCallback(async () => {
+    if (!thread) return;
+    try {
+      const { error: muteError } = await supabase
+        .from('roast_threads')
+        .update({ status: 'muted' })
+        .eq('id', thread.id);
+
+      if (muteError) {
+        setError(muteError.message || 'Failed to mute thread');
+        return;
+      }
+
+      await loadThread();
+    } catch (e) {
+      console.error('Mute thread exception:', e);
+      setError('Failed to mute thread');
     }
   }, [loadThread, thread]);
 
@@ -249,6 +397,11 @@ export default function RoastThreadPage() {
             {error}
           </div>
         )}
+        {reactionsError && (
+          <div className="bg-error/10 border border-error/20 text-error px-4 py-3 rounded-lg text-sm">
+            {reactionsError}
+          </div>
+        )}
 
         {checkIn && (
           <div className="bg-surface border border-text-muted/20 rounded-lg p-4">
@@ -260,8 +413,15 @@ export default function RoastThreadPage() {
                 {checkIn.excuse && (
                   <div className="text-sm text-text-muted mt-1">&quot;{checkIn.excuse}&quot;</div>
                 )}
+                {checkIn.proof_url && (
+                  <div className="mt-3 rounded overflow-hidden border border-text-muted/20">
+                    <img src={checkIn.proof_url} alt="Proof" className="w-full max-w-sm object-cover" />
+                  </div>
+                )}
               </div>
-              <div className="text-xs text-text-muted">{thread?.status === 'open' ? 'Open' : 'Closed'}</div>
+              <div className="text-xs text-text-muted">
+                {thread?.status === 'open' ? 'Open' : thread?.status === 'muted' ? 'Muted' : 'Closed'}
+              </div>
             </div>
           </div>
         )}
@@ -276,34 +436,139 @@ export default function RoastThreadPage() {
                   <div className="text-xs text-text-muted mb-1">
                     {r.users?.display_name || 'Member'}
                   </div>
-                  <div className="text-text-primary text-sm">{r.content}</div>
+                  {r.content_type === 'image' ? (
+                    <div className="mt-1 rounded overflow-hidden border border-text-muted/20">
+                      <img src={r.content} alt="Roast image" className="w-full max-w-sm object-cover" />
+                    </div>
+                  ) : r.content_type === 'gif' ? (
+                    <div className="mt-1 rounded overflow-hidden border border-text-muted/20">
+                      <img src={r.content} alt="GIF" className="w-full max-w-sm object-cover" />
+                    </div>
+                  ) : (
+                    <div className="text-text-primary text-sm">{r.content}</div>
+                  )}
+
+                  {/* Reactions */}
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    {REACTION_EMOJI_OPTIONS.map((opt) => {
+                      const summary = reactionByResponseId[r.id];
+                      const count = summary?.counts?.[opt.key] ?? 0;
+                      const isMine = summary?.myReaction === opt.key;
+                      if (count === 0 && !isMine) return null;
+                      return (
+                        <button
+                          key={opt.key}
+                          onClick={() => handleToggleReaction(r.id, opt.key)}
+                          disabled={isLoadingReactions}
+                          className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                            isMine
+                              ? 'bg-primary/15 border-primary/30 text-primary'
+                              : 'bg-surface-elevated border-text-muted/20 text-text-primary hover:bg-surface'
+                          }`}
+                          title={opt.key}
+                        >
+                          {opt.label} {count > 0 ? count : ''}
+                        </button>
+                      );
+                    })}
+
+                    {thread?.status === 'open' && (
+                      <div className="flex items-center gap-1">
+                        {REACTION_EMOJI_OPTIONS.map((opt) => (
+                          <button
+                            key={`picker-${r.id}-${opt.key}`}
+                            onClick={() => handleToggleReaction(r.id, opt.key)}
+                            disabled={isLoadingReactions}
+                            className="text-xs px-2 py-1 rounded-full border bg-surface border-text-muted/20 hover:bg-surface-elevated transition-colors"
+                            title={`React ${emojiKeyToLabel(opt.key)}`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))
             )}
           </div>
 
           <div className="mt-4 flex items-end gap-2">
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={thread?.status === 'open' ? 'Write a roast...' : 'Thread is closed'}
-              disabled={thread?.status !== 'open' || isPosting}
-              className="flex-1 rounded-md bg-background border border-text-muted/20 p-3 text-sm text-text-primary placeholder:text-text-muted disabled:opacity-60"
-              rows={3}
-            />
-            <button
-              onClick={handlePost}
-              disabled={!canPost || isPosting}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                !canPost || isPosting ? 'bg-surface text-text-muted cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'
-              }`}
-            >
-              {isPosting ? 'Posting...' : 'Post'}
-            </button>
+            {roastLevel === 1 ? (
+              <div className="w-full text-sm text-text-secondary bg-surface-elevated border border-text-muted/20 rounded-lg p-3">
+                🌶 Mild roast level: reactions only.
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={thread?.status === 'open' ? 'Write a roast...' : 'Thread is closed'}
+                  disabled={thread?.status !== 'open' || isPosting || isPostingMedia}
+                  className="flex-1 rounded-md bg-background border border-text-muted/20 p-3 text-sm text-text-primary placeholder:text-text-muted disabled:opacity-60"
+                  rows={3}
+                />
+                <button
+                  onClick={handlePost}
+                  disabled={!canTextPost || isPosting}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                    !canTextPost || isPosting ? 'bg-surface text-text-muted cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'
+                  }`}
+                >
+                  {isPosting ? 'Posting...' : 'Post'}
+                </button>
+              </>
+            )}
           </div>
 
+          {thread?.status === 'open' && roastLevel >= 2 && (
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-text-muted">GIF URL</label>
+                <input
+                  value={gifUrl}
+                  onChange={(e) => setGifUrl(e.target.value)}
+                  disabled={!canMediaPost || isPostingMedia}
+                  placeholder="https://..."
+                  className="flex-1 rounded-md bg-background border border-text-muted/20 px-3 py-2 text-sm text-text-primary placeholder:text-text-muted disabled:opacity-60"
+                />
+                <button
+                  onClick={handlePostGif}
+                  disabled={!canMediaPost || isPostingMedia || gifUrl.trim().length === 0}
+                  className="px-3 py-2 rounded-lg bg-surface border border-text-muted/20 text-text-primary hover:bg-surface-elevated disabled:opacity-60 transition-colors text-sm font-semibold"
+                >
+                  Post GIF
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs text-text-muted">Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={!canMediaPost || isPostingMedia}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handlePostImage(file);
+                      // allow re-selecting same file
+                      e.currentTarget.value = '';
+                    }}
+                    className="block text-xs text-text-muted mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {thread?.status === 'open' && isOwner && (
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex justify-end gap-4">
+              <button
+                onClick={handleMute}
+                className="text-xs text-text-muted hover:text-text-secondary transition-colors"
+              >
+                Mute thread
+              </button>
               <button
                 onClick={handleClose}
                 className="text-xs text-text-muted hover:text-text-secondary transition-colors"
