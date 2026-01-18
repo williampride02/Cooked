@@ -7,12 +7,19 @@ import type {
   PactCreatedFeedItem,
   RecapFeedItem,
 } from '@cooked/shared';
+import type { ReactionEmoji } from '@cooked/shared';
+import { REACTION_EMOJI_OPTIONS } from '@/hooks/useReactions';
 
 interface FeedItemProps {
   item: FeedItemType;
   onPress?: () => void;
   showGroupName?: boolean;
   groupName?: string;
+  reactions?: {
+    counts: Record<ReactionEmoji, number>;
+    myReaction: ReactionEmoji | null;
+  };
+  onToggleReaction?: (emoji: ReactionEmoji) => void;
 }
 
 function formatTimeAgo(dateString: string): string {
@@ -33,11 +40,15 @@ function formatTimeAgo(dateString: string): string {
 function CheckInItem({ 
   item, 
   showGroupName = false, 
-  groupName 
+  groupName,
+  reactions,
+  onToggleReaction,
 }: { 
   item: CheckInFeedItem;
   showGroupName?: boolean;
   groupName?: string;
+  reactions?: FeedItemProps['reactions'];
+  onToggleReaction?: FeedItemProps['onToggleReaction'];
 }) {
   const isSuccess = item.check_in.status === 'success';
 
@@ -120,6 +131,50 @@ function CheckInItem({
               alt="Proof"
               className="w-full max-w-xs object-cover"
             />
+          </div>
+        )}
+
+        {/* Reactions */}
+        {reactions && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {REACTION_EMOJI_OPTIONS.map((opt) => {
+              const count = reactions.counts[opt.key] || 0;
+              const isMine = reactions.myReaction === opt.key;
+              if (count === 0 && !isMine) return null;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleReaction?.(opt.key);
+                  }}
+                  className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                    isMine
+                      ? 'bg-primary/15 border-primary/30 text-primary'
+                      : 'bg-surface-elevated border-text-muted/20 text-text-primary hover:bg-surface'
+                  }`}
+                >
+                  {opt.label} {count > 0 ? count : ''}
+                </button>
+              );
+            })}
+
+            {/* Quick picker */}
+            <div className="flex items-center gap-1">
+              {REACTION_EMOJI_OPTIONS.map((opt) => (
+                <button
+                  key={`picker-${item.check_in.id}-${opt.key}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleReaction?.(opt.key);
+                  }}
+                  className="text-xs px-2 py-1 rounded-full border bg-surface border-text-muted/20 hover:bg-surface-elevated transition-colors"
+                  title="React"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -292,12 +347,20 @@ export function FeedItemComponent({
   item, 
   onPress, 
   showGroupName = false,
-  groupName 
+  groupName,
+  reactions,
+  onToggleReaction,
 }: FeedItemProps) {
   if (item.type === 'check_in') {
     return (
       <div onClick={onPress} className="cursor-pointer">
-        <CheckInItem item={item} showGroupName={showGroupName} groupName={groupName} />
+        <CheckInItem
+          item={item}
+          showGroupName={showGroupName}
+          groupName={groupName}
+          reactions={reactions}
+          onToggleReaction={onToggleReaction}
+        />
       </div>
     );
   }

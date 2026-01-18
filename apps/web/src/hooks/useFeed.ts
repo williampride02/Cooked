@@ -2,6 +2,9 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { FeedItem, CheckInFeedItem, PactCreatedFeedItem, MemberJoinedFeedItem, RecapFeedItem } from '@cooked/shared';
 import { signProofUrlIfNeeded } from '@/utils/storage';
+import { useReactions } from '@/hooks/useReactions';
+import type { ReactionEmoji } from '@cooked/shared';
+import type { ReactionSummary } from '@/hooks/useReactions';
 
 interface UseFeedReturn {
   feedItems: FeedItem[];
@@ -9,6 +12,8 @@ interface UseFeedReturn {
   isRefreshing: boolean;
   error: string | null;
   hasNewActivity: boolean;
+  reactionByCheckInId: Record<string, ReactionSummary>;
+  toggleCheckInReaction: (checkInId: string, emoji: ReactionEmoji) => Promise<void>;
   refresh: () => Promise<void>;
   loadMore: () => Promise<void>;
   hasMore: boolean;
@@ -66,6 +71,8 @@ export function useFeed(groupId: string | null): UseFeedReturn {
   const realtimeDebounceRef = useRef<number | null>(null);
   const newActivityTimeoutRef = useRef<number | null>(null);
   const [hasNewActivity, setHasNewActivity] = useState(false);
+  const [reactionByCheckInId, setReactionByCheckInId] = useState<Record<string, ReactionSummary>>({});
+  const { fetchReactionSummaries, toggleReaction } = useReactions();
 
   const bumpNewActivity = useCallback(() => {
     setHasNewActivity(true);
@@ -263,6 +270,15 @@ export function useFeed(groupId: string | null): UseFeedReturn {
             },
           }));
 
+        // Reactions for visible check-ins (best-effort)
+        const checkInIds = checkInItems.map((i) => i.check_in.id);
+        if (checkInIds.length > 0) {
+          const summaries = await fetchReactionSummaries({ targetType: 'check_in', targetIds: checkInIds });
+          setReactionByCheckInId(summaries);
+        } else {
+          setReactionByCheckInId({});
+        }
+
         const pactCreatedItems: PactCreatedFeedItem[] = ((pactCreated || []) as unknown as PactCreatedWithRelations[])
           .filter((p) => !!p.users)
           .map((p) => ({
@@ -435,6 +451,11 @@ export function useFeed(groupId: string | null): UseFeedReturn {
     isRefreshing,
     error,
     hasNewActivity,
+    reactionByCheckInId,
+    toggleCheckInReaction: async (checkInId: string, emoji: ReactionEmoji) => {
+      await toggleReaction({ targetType: 'check_in', targetId: checkInId, emoji });
+      await fetchFeed(true);
+    },
     refresh,
     loadMore,
     hasMore,

@@ -45,6 +45,8 @@ export default function GroupFeedPage() {
     isRefreshing,
     error,
     hasNewActivity,
+    reactionByCheckInId,
+    toggleCheckInReaction,
     refresh,
     loadMore,
     hasMore,
@@ -275,6 +277,12 @@ export default function GroupFeedPage() {
                   showGroupName={!selectedGroupId}
                   groupName={itemGroup?.name}
                   onPress={() => handleFeedItemClick(item)}
+                  reactions={item.type === 'check_in' ? reactionByCheckInId[item.check_in.id] : undefined}
+                  onToggleReaction={
+                    item.type === 'check_in'
+                      ? (emoji) => toggleCheckInReaction(item.check_in.id, emoji)
+                      : undefined
+                  }
                 />
               );
             })}
