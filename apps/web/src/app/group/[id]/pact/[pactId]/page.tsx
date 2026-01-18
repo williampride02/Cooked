@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { usePacts } from '@/hooks/usePacts';
 import { usePactStats } from '@/hooks/usePactStats';
+import { usePactCheckIns } from '@/hooks/usePactCheckIns';
 import { supabase } from '@/lib/supabase';
 import type { PactWithParticipants } from '@cooked/shared';
 import { PactStats } from '@/components/pacts/PactStats';
@@ -38,6 +39,21 @@ const DAY_LABELS: Record<number, string> = {
   6: 'Sat',
 };
 
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export default function PactDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -45,9 +61,17 @@ export default function PactDetailPage() {
   const pactId = params.pactId as string;
   const [pact, setPact] = useState<PactWithParticipants | null>(null);
   const [showStats, setShowStats] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { fetchPact, archivePact, isLoading, error } = usePacts();
   const { fetchPactStats, isLoading: isLoadingStats } = usePactStats();
+  const {
+    items: checkInHistory,
+    isLoading: isLoadingHistory,
+    error: historyError,
+    hasMore: historyHasMore,
+    loadMore: loadMoreHistory,
+  } = usePactCheckIns(pactId);
 
   // Get current user
   useEffect(() => {
@@ -221,6 +245,115 @@ export default function PactDetailPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Recent Check-ins */}
+        <div>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between bg-surface border border-text-muted/20 rounded-lg p-4 hover:bg-surface-elevated transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span>🗓️</span>
+              <span className="text-base font-semibold text-text-primary">Recent check-ins</span>
+            </div>
+            <span className="text-text-muted">{showHistory ? '▲' : '▼'}</span>
+          </button>
+
+          {showHistory && (
+            <div className="bg-surface border border-text-muted/20 border-t-0 rounded-b-lg p-4 space-y-3">
+              {historyError && (
+                <div className="bg-error/10 border border-error/20 text-error px-4 py-3 rounded-lg text-sm">
+                  {historyError}
+                </div>
+              )}
+
+              {!historyError && checkInHistory.length === 0 && (
+                <div className="text-sm text-text-secondary">
+                  {isLoadingHistory ? 'Loading check-ins…' : 'No check-ins yet for this pact.'}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {checkInHistory.map((ci) => {
+                  const isSuccess = ci.status === 'success';
+                  return (
+                    <div
+                      key={ci.id}
+                      className="bg-surface-elevated border border-text-muted/20 rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-surface flex items-center justify-center overflow-hidden border border-text-muted/20">
+                          {ci.user.avatar_url ? (
+                            <img
+                              src={ci.user.avatar_url}
+                              alt={`${ci.user.display_name}'s avatar`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-text-muted text-sm">
+                              {ci.user.display_name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-text-primary truncate">
+                              {ci.user.display_name}
+                              {ci.user.id === currentUserId && (
+                                <span className="text-text-muted"> (you)</span>
+                              )}
+                            </p>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full border ${
+                                isSuccess
+                                  ? 'bg-success/10 border-success/20 text-success'
+                                  : 'bg-error/10 border-error/20 text-error'
+                              }`}
+                            >
+                              {isSuccess ? '✅ success' : '❌ fold'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-text-muted">
+                            {new Date(ci.check_in_date).toLocaleDateString()} • {formatTimeAgo(ci.created_at)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {!isSuccess && ci.excuse && (
+                        <div className="mt-2 bg-surface rounded p-2">
+                          <p className="text-xs text-text-secondary italic">
+                            &quot;{ci.excuse}&quot;
+                          </p>
+                        </div>
+                      )}
+
+                      {ci.proof_url && (
+                        <div className="mt-2 rounded overflow-hidden">
+                          <img
+                            src={ci.proof_url}
+                            alt="Proof"
+                            className="w-full max-w-xs object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {historyHasMore && (
+                <button
+                  onClick={loadMoreHistory}
+                  disabled={isLoadingHistory}
+                  className="w-full py-3 rounded-lg bg-surface border border-text-muted/20 text-text-primary hover:bg-surface-elevated disabled:opacity-60 transition-colors text-sm font-semibold"
+                >
+                  {isLoadingHistory ? 'Loading…' : 'Load more'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Statistics Section */}

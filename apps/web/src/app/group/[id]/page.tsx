@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useFeed } from '@/hooks/useFeed';
+import { useGroupContext } from '@/hooks/useGroupContext';
+import { useGroups } from '@/hooks/useGroups';
 import { FeedItemComponent } from '@/components/feed/FeedItem';
+import { EmptyFeedState } from '@/components/feed/EmptyFeedState';
+import { GroupFilter } from '@/components/feed/GroupFilter';
 import type { Group, FeedItem } from '@cooked/shared';
 
 export const dynamic = 'force-dynamic';
@@ -31,17 +35,69 @@ export default function GroupFeedPage() {
   const groupId = params.id as string;
   const [group, setGroup] = useState<Group | null>(null);
   const [loadingGroup, setLoadingGroup] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(groupId);
+  const [allGroups, setAllGroups] = useState<Group[]>([]);
+  const { fetchUserGroups } = useGroups();
   const {
     feedItems,
     isLoading,
     isRefreshing,
     error,
+    hasNewActivity,
     refresh,
     loadMore,
     hasMore,
-  } = useFeed(groupId);
+  } = useFeed(selectedGroupId);
+  // Use the current group's context for empty state, even when viewing all groups
+  const {
+    memberCount,
+    members,
+    pactCount,
+    hasCheckInsToday,
+    isNewMember,
+    isLoading: isLoadingContext,
+  } = useGroupContext(groupId, currentUserId);
+
+  const handleFeedItemClick = useCallback(
+    (item: FeedItem) => {
+      if (item.type === 'check_in') {
+        if (item.check_in.status === 'fold') {
+          router.push(`/roast/${item.check_in.id}`);
+          return;
+        }
+        router.push(`/group/${item.group_id}/pact/${item.check_in.pact_id}`);
+        return;
+      }
+
+      if (item.type === 'pact_created') {
+        router.push(`/group/${item.group_id}/pact/${item.pact.id}`);
+        return;
+      }
+
+      if (item.type === 'recap') {
+        router.push(`/group/${item.group_id}/recaps/${item.recap_id}`);
+        return;
+      }
+    },
+    [router]
+  );
 
   useEffect(() => {
+    // Get current user
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    getCurrentUser();
+
+    // Fetch all groups for filter
+    const loadGroups = async () => {
+      const userGroups = await fetchUserGroups();
+      setAllGroups(userGroups);
+    };
+    loadGroups();
+
     // Fetch group details
     const fetchGroup = async () => {
       const { data, error } = await supabase
@@ -63,7 +119,21 @@ export default function GroupFeedPage() {
     if (groupId) {
       fetchGroup();
     }
-  }, [groupId, router]);
+  }, [groupId, router, fetchUserGroups]);
+
+  // Update selectedGroupId when route changes
+  useEffect(() => {
+    setSelectedGroupId(groupId);
+  }, [groupId]);
+
+  const handleGroupChange = (newGroupId: string | null) => {
+    setSelectedGroupId(newGroupId);
+    if (newGroupId === null) {
+      router.push('/dashboard');
+    } else if (newGroupId !== groupId) {
+      router.push(`/group/${newGroupId}`);
+    }
+  };
 
   const handleCheckIn = () => {
     router.push(`/group/${groupId}/pacts`);
@@ -75,6 +145,10 @@ export default function GroupFeedPage() {
 
   const handleSettings = () => {
     router.push(`/group/${groupId}/settings`);
+  };
+
+  const handleRecaps = () => {
+    router.push(`/group/${groupId}/recaps`);
   };
 
   const handleCreatePact = () => {
@@ -93,32 +167,52 @@ export default function GroupFeedPage() {
     <main className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background border-b border-text-muted/20 px-8 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-text-primary">
-            {group?.name || 'Group'}
-          </h1>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleCheckIn}
-              className="px-4 py-2 bg-primary text-white rounded-full text-sm font-semibold hover:bg-primary/90 transition-colors"
-            >
-              ✅ Check In
-            </button>
-            <button
-              onClick={handleInvite}
-              className="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-text-muted/20 hover:bg-surface-elevated transition-colors"
-              title="Invite members"
-            >
-              <span className="text-text-primary text-xl">+</span>
-            </button>
-            <button
-              onClick={handleSettings}
-              className="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-text-muted/20 hover:bg-surface-elevated transition-colors"
-              title="Group settings"
-            >
-              <span className="text-text-muted text-sm">*</span>
-            </button>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-text-primary">
+              {selectedGroupId ? (group?.name || 'Group') : 'All Groups'}
+            </h1>
+            {selectedGroupId && (
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleCheckIn}
+                  className="px-4 py-2 bg-primary text-white rounded-full text-sm font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  ✅ Check In
+                </button>
+                <button
+                  onClick={handleInvite}
+                  className="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-text-muted/20 hover:bg-surface-elevated transition-colors"
+                  title="Invite members"
+                >
+                  <span className="text-text-primary text-xl">+</span>
+                </button>
+                <button
+                  onClick={handleRecaps}
+                  className="px-4 py-2 bg-surface border border-text-muted/20 text-text-primary rounded-full text-sm font-semibold hover:bg-surface-elevated transition-colors"
+                  title="Weekly recaps"
+                >
+                  📊 Recaps
+                </button>
+                <button
+                  onClick={handleSettings}
+                  className="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-text-muted/20 hover:bg-surface-elevated transition-colors"
+                  title="Group settings"
+                >
+                  <span className="text-text-muted text-sm">*</span>
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Group Filter */}
+          {allGroups.length > 0 && (
+            <GroupFilter
+              groups={allGroups}
+              selectedGroupId={selectedGroupId}
+              onGroupChange={handleGroupChange}
+            />
+          )}
         </div>
       </div>
 
@@ -133,31 +227,57 @@ export default function GroupFeedPage() {
 
       {/* Feed */}
       <div className="max-w-4xl mx-auto px-8 py-4">
+        {hasNewActivity && (
+          <div className="mb-3 bg-primary/10 border border-primary/20 text-primary px-4 py-2 rounded-lg text-sm text-center">
+            New activity
+          </div>
+        )}
         {isLoading && feedItems.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-text-secondary">Loading feed...</div>
           </div>
-        ) : feedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center border border-text-muted/20 mb-4">
-              <span className="text-4xl text-text-muted">*</span>
+        ) : feedItems.length === 0 && (selectedGroupId ? group : true) ? (
+          selectedGroupId && group ? (
+            <EmptyFeedState
+              group={group}
+              memberCount={memberCount}
+              members={members}
+              hasPacts={pactCount > 0}
+              pactCount={pactCount}
+              hasCheckInsToday={hasCheckInsToday}
+              isNewMember={isNewMember}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center border border-text-muted/20 mb-4">
+                <span className="text-4xl text-text-muted">🔥</span>
+              </div>
+              <p className="text-text-secondary text-center mb-2">No activity yet</p>
+              <p className="text-sm text-text-muted text-center mb-6 px-8">
+                Create a group and start checking in with your friends!
+              </p>
+              <Link
+                href="/create-group"
+                className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+              >
+                Create Group
+              </Link>
             </div>
-            <p className="text-text-secondary text-center mb-2">No activity yet</p>
-            <p className="text-sm text-text-muted text-center mb-6 px-8">
-              Create a pact and start checking in with your group!
-            </p>
-            <button
-              onClick={handleCreatePact}
-              className="px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors"
-            >
-              Create Pact
-            </button>
-          </div>
+          )
         ) : (
           <div className="space-y-4">
-            {feedItems.map((item) => (
-              <FeedItemComponent key={item.id} item={item} />
-            ))}
+            {feedItems.map((item) => {
+              const itemGroup = allGroups.find((g) => g.id === item.group_id);
+              return (
+                <FeedItemComponent
+                  key={item.id}
+                  item={item}
+                  showGroupName={!selectedGroupId}
+                  groupName={itemGroup?.name}
+                  onPress={() => handleFeedItemClick(item)}
+                />
+              );
+            })}
             {hasMore && (
               <div className="flex justify-center py-4">
                 <button

@@ -1,6 +1,6 @@
 # Troubleshooting: Getting Cooked on Your iPhone
 
-**Date:** January 14, 2025
+**Date:** January 14, 2026
 **Status:** In Progress
 **Goal:** Install Cooked app on physical iPhone using free Apple ID (no $99 developer account)
 
@@ -9,8 +9,8 @@
 ## Current State
 
 ### What's Working
-- ✅ Xcode project generated (`ios/Cooked.xcworkspace`)
-- ✅ CocoaPods installed successfully
+- ✅ Native iOS project can be generated via Expo CNG (`npx expo run:ios` or `npx expo prebuild --platform ios`)
+- ✅ CocoaPods can be installed after generation (inside `apps/mobile/ios/`)
 - ✅ Signed into Xcode with Apple ID (William Pride - Personal Team)
 - ✅ Bundle ID changed to `com.williampride.cookedapp`
 - ✅ Entitlements file cleaned (removed push notifications & associated domains)
@@ -31,8 +31,11 @@ Personal development teams, including "William Pride", do not support the Associ
 - [ ] iPhone will restart
 - [ ] Trust the computer when prompted
 
-### 2. Clean Build in Xcode
-- [ ] Open Xcode: `open ios/Cooked.xcworkspace`
+### 2. Generate iOS Project + Clean Build in Xcode
+- [ ] Generate the iOS project (CNG):
+  - [ ] `cd apps/mobile && npx expo run:ios` (recommended)
+  - or `cd apps/mobile && npx expo prebuild --platform ios`
+- [ ] Open Xcode: `open apps/mobile/ios/Cooked.xcworkspace`
 - [ ] Menu: **Product → Clean Build Folder** (⇧⌘K)
 - [ ] Click **Try Again** in Signing & Capabilities
 
@@ -51,7 +54,7 @@ Personal development teams, including "William Pride", do not support the Associ
 ### 5. If Still Not Working - Nuclear Option
 Delete and regenerate the iOS folder:
 ```bash
-cd /Users/williampride/Projects/Cooked
+cd /Users/williampride/Projects/Cooked/apps/mobile
 rm -rf ios
 npx expo prebuild --platform ios
 ```
@@ -62,7 +65,7 @@ Then remove capabilities from `app.json` before prebuild (see below).
 ## Files Modified
 
 ### Entitlements (already cleaned)
-**File:** `ios/Cooked/Cooked.entitlements`
+**File:** `apps/mobile/ios/Cooked/Cooked.entitlements`
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -89,15 +92,15 @@ See `RESTORE-CAPABILITIES.md` for full details:
 
 ```bash
 # Open Xcode
-open /Users/williampride/Projects/Cooked/ios/Cooked.xcworkspace
+open /Users/williampride/Projects/Cooked/apps/mobile/ios/Cooked.xcworkspace
 
 # Clean and regenerate iOS folder (if needed)
-cd /Users/williampride/Projects/Cooked
+cd /Users/williampride/Projects/Cooked/apps/mobile
 rm -rf ios
 npx expo prebuild --platform ios
 
 # Run pod install (if needed)
-cd ios && pod install && cd ..
+cd apps/mobile/ios && pod install && cd ../../..
 ```
 
 ---
@@ -106,7 +109,7 @@ cd ios && pod install && cd ..
 
 If iPhone install keeps failing, you can still test in simulator:
 ```bash
-cd /Users/williampride/Projects/Cooked
+cd /Users/williampride/Projects/Cooked/apps/mobile
 npx expo start
 # Press 'i' to open iOS simulator
 ```

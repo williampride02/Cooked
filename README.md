@@ -20,7 +20,8 @@ Cooked/
 
 - Node.js 18+
 - pnpm (`npm install -g pnpm`)
-- iOS: Xcode & CocoaPods
+- iOS: Xcode (needed only if you build iOS locally)
+- Android: Android Studio (needed only if you build Android locally)
 - Supabase account
 
 ### Installation
@@ -28,9 +29,6 @@ Cooked/
 ```bash
 # Install dependencies
 pnpm install
-
-# For iOS mobile development
-cd apps/mobile/ios && pod install && cd ../../..
 ```
 
 ### Development
@@ -50,14 +48,19 @@ pnpm build:web
 
 Located in `apps/mobile/`
 
+### Native folders (CNG)
+
+This repo uses **Expo CNG (Continuous Native Generation)**, so `apps/mobile/ios/` and `apps/mobile/android/` are generated during builds and are not committed.
+See `docs/expo-cng-workflow.md` for details.
+
 ### Running on iOS
 
 ```bash
 cd apps/mobile
 npx expo start --dev-client
 
-# Or run directly in Xcode
-open ios/Cooked.xcworkspace
+# Native build (generates ios/ locally)
+npx expo run:ios
 ```
 
 ### Running E2E Tests
@@ -140,6 +143,7 @@ supabase db push
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
 EXPO_PUBLIC_TENOR_API_KEY=
+EXPO_PUBLIC_REVENUECAT_API_KEY=
 ```
 
 ### Web (`apps/web/.env.local`)

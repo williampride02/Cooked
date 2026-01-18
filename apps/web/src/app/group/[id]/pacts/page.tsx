@@ -125,9 +125,10 @@ export default function PactsListPage() {
                 </h2>
                 <div className="space-y-3">
                   {duePacts.map((pact) => (
-                    <PactCard
+                    <DuePactCard
                       key={pact.id}
                       pact={pact}
+                      groupId={groupId}
                       onClick={() => handlePactClick(pact.id)}
                     />
                   ))}
@@ -217,5 +218,65 @@ function PactCard({ pact, onClick }: PactCardProps) {
         ) : null}
       </div>
     </button>
+  );
+}
+
+interface DuePactCardProps {
+  pact: PactWithCheckInStatus;
+  groupId: string;
+  onClick: () => void;
+}
+
+function DuePactCard({ pact, groupId, onClick }: DuePactCardProps) {
+  const router = useRouter();
+
+  const handleSuccess = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      router.push(`/group/${groupId}/pact/${pact.id}/check-in?status=success`);
+    },
+    [groupId, pact.id, router]
+  );
+
+  const handleFold = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      router.push(`/group/${groupId}/pact/${pact.id}/check-in?status=fold`);
+    },
+    [groupId, pact.id, router]
+  );
+
+  return (
+    <div className="bg-surface border border-text-muted/20 rounded-lg p-4 hover:bg-surface-elevated transition-colors">
+      <button onClick={onClick} className="w-full text-left">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-text-primary mb-1">{pact.name}</h3>
+            <p className="text-sm text-text-muted">
+              {pact.frequency === 'daily' ? 'Daily' : pact.frequency === 'weekly' ? 'Weekly' : 'Custom'}{' '}
+              {ROAST_EMOJIS[pact.roast_level]}
+            </p>
+          </div>
+          <div className="bg-primary/20 px-3 py-1 rounded-full">
+            <span className="text-primary text-sm font-medium">Due</span>
+          </div>
+        </div>
+      </button>
+
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          onClick={handleSuccess}
+          className="flex-1 px-4 py-2 rounded-lg bg-success text-white text-sm font-semibold hover:bg-success/90 transition-colors"
+        >
+          ✅ Success
+        </button>
+        <button
+          onClick={handleFold}
+          className="flex-1 px-4 py-2 rounded-lg bg-error text-white text-sm font-semibold hover:bg-error/90 transition-colors"
+        >
+          ❌ Fold
+        </button>
+      </div>
+    </div>
   );
 }

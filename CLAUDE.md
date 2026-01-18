@@ -201,7 +201,13 @@ Required in `.env` (gitignored):
 ```
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_REVENUECAT_API_KEY=
 ```
+
+## Expo CNG (native folders)
+
+This repo uses **Expo CNG (Continuous Native Generation)** for `apps/mobile`, meaning `apps/mobile/ios/` and `apps/mobile/android/` are generated during builds and should not be committed.
+Reference: `docs/expo-cng-workflow.md`
 
 ## Key References
 

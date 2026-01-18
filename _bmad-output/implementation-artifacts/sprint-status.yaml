@@ -118,11 +118,16 @@ development_status:
   epic-web: in-progress
   web-1-dashboard-groups-feed: done  # Dashboard, groups list, create/join, feed display
   web-2-pacts-management: review  # View, create, edit, archive pacts
-  web-3-check-in-interface: backlog  # Check-in success/fold with proof
-  web-4-real-time-feed-updates: backlog  # Real-time feed via WebSocket
-  web-5-roast-threads: backlog  # View and participate in roast threads
-  web-6-weekly-recaps: backlog  # View and share weekly recaps
+  web-3-check-in-interface: ready-for-dev  # UI largely exists; needs acceptance-criteria gaps closed (e.g., check-in history view)
+  web-4-real-time-feed-updates: ready-for-dev  # Partial: realtime check-ins only; missing pact/member feed items + indicator
+  web-5-roast-threads: ready-for-dev  # Partial: web supports text + realtime; missing media/reactions/roast-level enforcement/mute
+  web-6-weekly-recaps: ready-for-dev  # Partial: list/detail exists; missing shareable recap card generation
   web-7-group-invites-join-requests: review  # Secure invite links + join request approval
+  web-8-tracker-reconciliation: done  # Story file + status reconciliation for web-3..web-6 + follow-up story stubs
+  web-9-supabase-cron-edge-productionize: ready-for-dev  # Vault secrets + cron verification + deployment checklist
+  web-10-web-auth-account-linking-hardening: ready-for-dev  # Improve email/phone linking reliability + UX
+  web-11-web-roast-threads-parity: ready-for-dev  # Bring web roast threads to parity (media/reactions/enforcement)
+  web-12-subscription-end-to-end: ready-for-dev  # RevenueCat webhook + group premium gating verification
   epic-web-retrospective: optional
 
   # Epic 8: Android Porting (5 stories)

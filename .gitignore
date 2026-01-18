@@ -19,6 +19,7 @@ apps/mobile/.expo/
 web-build/
 
 # iOS
+apps/mobile/ios/
 apps/mobile/ios/Pods/
 apps/mobile/ios/build/
 *.xcworkspace/xcuserdata/
@@ -26,6 +27,7 @@ apps/mobile/ios/build/
 DerivedData/
 
 # Android
+apps/mobile/android/
 apps/mobile/android/build/
 apps/mobile/android/app/build/
 apps/mobile/android/.gradle/

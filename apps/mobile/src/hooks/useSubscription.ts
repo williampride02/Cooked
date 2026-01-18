@@ -25,6 +25,10 @@ export function useSubscription(groupId?: string | null): UseSubscriptionReturn 
   const currentGroup = useAppStore((state) => state.currentGroup);
   const targetGroupId = groupId || currentGroup?.id;
 
+  // Limit helpers (used for gating free tier behavior)
+  const pactLimit = usePactLimit(targetGroupId || null);
+  const groupLimit = useGroupLimit();
+
   // Fetch subscription status for the group
   const fetchSubscription = useCallback(async () => {
     if (!targetGroupId) {
@@ -80,19 +84,15 @@ export function useSubscription(groupId?: string | null): UseSubscriptionReturn 
 
   // Check if user can create a new pact (within limits)
   const canCreatePact = useMemo(() => {
+    if (!targetGroupId) return false;
     if (isPremium) return true;
-    // Would need to check current pact count - for now, assume true
-    // This would be more accurately checked in the create pact flow
-    return true;
-  }, [isPremium]);
+    return pactLimit.canCreate;
+  }, [isPremium, pactLimit.canCreate, targetGroupId]);
 
-  // Check if user can join another group
+  // Check if user can join another group (free tier limit applies unless user has any premium group)
   const canJoinGroup = useMemo(() => {
-    if (isPremium) return true;
-    // Would need to check current group count
-    // For free tier, limit is 1 group
-    return true;
-  }, [isPremium]);
+    return groupLimit.canJoin;
+  }, [groupLimit.canJoin]);
 
   // Check if a specific feature is accessible
   const canAccessFeature = useCallback(
@@ -144,16 +144,27 @@ export function usePactLimit(groupId: string | null): {
 } {
   const [currentCount, setCurrentCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const { isPremium } = useSubscription(groupId);
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
-    async function fetchPactCount() {
+    async function fetchPactCountAndSubscription() {
       if (!groupId) {
         setIsLoading(false);
         return;
       }
 
       try {
+        // Subscription status
+        const { data: group, error: groupError } = await supabase
+          .from('groups')
+          .select('subscription_status')
+          .eq('id', groupId)
+          .single();
+
+        if (!groupError && group) {
+          setIsPremium(group.subscription_status === 'premium' || group.subscription_status === 'trial');
+        }
+
         const { count, error } = await supabase
           .from('pacts')
           .select('*', { count: 'exact', head: true })
@@ -170,7 +181,7 @@ export function usePactLimit(groupId: string | null): {
       }
     }
 
-    fetchPactCount();
+    fetchPactCountAndSubscription();
   }, [groupId]);
 
   const maxCount = isPremium ? Infinity : FREE_TIER_LIMITS.max_pacts_per_group;

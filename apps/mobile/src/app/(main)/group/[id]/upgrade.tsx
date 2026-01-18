@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAppStore } from '@/stores/app';
 import { haptics } from '@/utils/haptics';
+import Purchases, { PURCHASES_ERROR_CODE, type PurchasesPackage } from 'react-native-purchases';
+import { ensureRevenueCatConfigured, logInRevenueCatGroup } from '@/lib/revenuecat';
 
 const PLANS = [
   {
@@ -44,6 +46,7 @@ export default function UpgradeScreen() {
   const { id: groupId } = useLocalSearchParams<{ id: string }>();
   const [selectedPlan, setSelectedPlan] = useState<string>('yearly');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [availablePackages, setAvailablePackages] = useState<PurchasesPackage[]>([]);
 
   const { subscription, isPremium, isLoading, refetch } = useSubscription(groupId);
   const currentGroup = useAppStore((state) => state.currentGroup);
@@ -58,26 +61,88 @@ export default function UpgradeScreen() {
     setSelectedPlan(planId);
   }, []);
 
+  const loadOfferings = useCallback(async () => {
+    if (!groupId) return;
+    try {
+      ensureRevenueCatConfigured();
+      await logInRevenueCatGroup(groupId);
+      const offerings = await Purchases.getOfferings();
+      setAvailablePackages(offerings.current?.availablePackages || []);
+    } catch (e) {
+      console.error('[Upgrade] Failed to load offerings:', e);
+      setAvailablePackages([]);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    if (!isPremium) {
+      void loadOfferings();
+    }
+  }, [isPremium, loadOfferings]);
+
+  const handleRestorePurchases = useCallback(async () => {
+    haptics.medium();
+    setIsProcessing(true);
+    try {
+      if (!groupId) {
+        Alert.alert('Error', 'Missing group id');
+        return;
+      }
+      ensureRevenueCatConfigured();
+      await logInRevenueCatGroup(groupId);
+      await Purchases.restorePurchases();
+      await refetch();
+      Alert.alert('Restored', 'Purchases restored. Premium may take a moment to sync.');
+    } catch (e: any) {
+      console.error('[Upgrade] Restore purchases error:', e);
+      Alert.alert('Restore Failed', e?.message || 'Something went wrong');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [groupId, refetch]);
+
   const handleSubscribe = useCallback(async () => {
     haptics.medium();
     setIsProcessing(true);
 
-    // In a real implementation, this would:
-    // 1. Initialize in-app purchase with App Store / Play Store
-    // 2. Present native payment sheet
-    // 3. Verify receipt on server
-    // 4. Update group subscription status
+    try {
+      if (!groupId) {
+        Alert.alert('Error', 'Missing group id');
+        return;
+      }
 
-    // For now, show a placeholder
-    setTimeout(() => {
-      setIsProcessing(false);
+      ensureRevenueCatConfigured();
+      await logInRevenueCatGroup(groupId);
+
+      const plan = selectedPlan; // 'monthly' | 'yearly'
+      const pkg =
+        availablePackages.find((p) => p.identifier.toLowerCase().includes(plan)) ||
+        availablePackages[0];
+
+      if (!pkg) {
+        Alert.alert('No Plans Available', 'No subscription packages are configured in RevenueCat yet.');
+        return;
+      }
+
+      await Purchases.purchasePackage(pkg);
+      await refetch();
+
       Alert.alert(
-        'Coming Soon',
-        'In-app purchases will be available in the next app update. Stay tuned!',
-        [{ text: 'OK' }]
+        'Purchase Complete',
+        'Thanks! We’re syncing your subscription. If Premium doesn’t unlock immediately, wait a moment and try again.'
       );
-    }, 1500);
-  }, [selectedPlan]);
+    } catch (e: any) {
+      console.error('[Upgrade] Purchase error:', e);
+
+      if (e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR || e?.userCancelled) {
+        return;
+      }
+
+      Alert.alert('Purchase Failed', e?.message || 'Something went wrong');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [availablePackages, groupId, refetch, selectedPlan]);
 
   const handleManageSubscription = useCallback(() => {
     haptics.light();
@@ -279,6 +344,18 @@ export default function UpgradeScreen() {
               Subscribe Now
             </Text>
           )}
+        </Pressable>
+
+        <Pressable
+          onPress={handleRestorePurchases}
+          disabled={isProcessing}
+          className="py-3 rounded-sm items-center mb-m bg-surface border border-border"
+          accessibilityLabel="Restore purchases"
+          accessibilityRole="button"
+        >
+          <Text className="text-text-primary text-body font-semibold">
+            Restore Purchases
+          </Text>
         </Pressable>
 
         {/* Terms */}

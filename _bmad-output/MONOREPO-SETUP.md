@@ -35,7 +35,7 @@ Cooked/
 ### 1. Next.js Web App (`apps/web/`)
 
 - Landing page with branding
-- Login/Signup pages (UI only - needs auth implementation)
+- Login/Signup pages (auth is implemented)
 - Same design system as mobile (dark theme, Cooked orange)
 - Supabase client configured
 - Tailwind CSS setup
@@ -111,20 +111,19 @@ Your web app will be live at: `https://cooked-<hash>.vercel.app`
 
 ### For the Web App
 
-1. **Implement Auth**
-   - Add email/password signup in `/signup/page.tsx`
-   - Add login logic in `/login/page.tsx`
-   - Create auth context/hooks
+The web app has grown beyond the initial scaffold. Current major feature areas now include:
 
-2. **Build Dashboard**
-   - Groups overview
-   - Pacts list
+1. **Auth**
+   - Email/password and phone/OTP login
+   - Account linking (email + phone)
+
+2. **Core product**
+   - Dashboard + combined feed across groups
+   - Groups (create/join/invite via secure links + join requests)
+   - Pacts management
    - Check-in flow
    - Roast threads
-
-3. **Add Linking**
-   - Link accounts (phone + email)
-   - Share data between mobile/web
+   - Weekly recaps
 
 ### For Mobile App
 
@@ -153,6 +152,11 @@ pnpm web
 pnpm mobile
 # Or: cd apps/mobile && npx expo start --dev-client
 ```
+
+### Note: Expo CNG (native folders)
+
+This repo uses Expo **CNG**, so `apps/mobile/ios/` and `apps/mobile/android/` are generated during builds and are not committed.
+See `docs/expo-cng-workflow.md`.
 
 ### Build Check
 
