@@ -34,7 +34,9 @@ export default function RecapDetailPage() {
   const [recap, setRecap] = useState<WeeklyRecap | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const load = useCallback(async () => {
     if (!recapId) return;
@@ -60,12 +62,17 @@ export default function RecapDetailPage() {
     };
   }, [groupId]);
 
+  const generateCardBlob = useCallback(async (): Promise<Blob> => {
+    if (!recap) throw new Error('No recap data');
+    return await generateRecapCardPng({ recap, groupName });
+  }, [recap, groupName]);
+
   const handleDownloadCard = useCallback(async () => {
     if (!recap) return;
     setIsDownloading(true);
-    setDownloadError(null);
+    setShareError(null);
     try {
-      const blob = await generateRecapCardPng({ recap, groupName });
+      const blob = await generateCardBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -76,11 +83,39 @@ export default function RecapDetailPage() {
       URL.revokeObjectURL(url);
     } catch (e: any) {
       console.error('Download recap card error:', e);
-      setDownloadError(e?.message || 'Failed to generate recap card');
+      setShareError(e?.message || 'Failed to generate recap card');
     } finally {
       setIsDownloading(false);
     }
-  }, [groupId, groupName, recap]);
+  }, [groupId, recap, generateCardBlob]);
+
+  const handleCopyToClipboard = useCallback(async () => {
+    if (!recap) return;
+    if (!navigator.clipboard || !window.ClipboardItem) {
+      setShareError('Clipboard API not supported in this browser');
+      return;
+    }
+
+    setIsCopying(true);
+    setShareError(null);
+    setCopySuccess(false);
+    try {
+      const blob = await generateCardBlob();
+      // ClipboardItem may not be in TypeScript types for all browsers
+      const ClipboardItemConstructor = (window as any).ClipboardItem as typeof ClipboardItem;
+      const item = new ClipboardItemConstructor({ 'image/png': blob });
+      await navigator.clipboard.write([item]);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (e: any) {
+      console.error('Copy to clipboard error:', e);
+      setShareError(e?.message || 'Failed to copy to clipboard');
+    } finally {
+      setIsCopying(false);
+    }
+  }, [recap, generateCardBlob]);
+
+  const supportsClipboard = typeof navigator !== 'undefined' && !!navigator.clipboard && 'ClipboardItem' in window;
 
   const awards = recap?.data.awards;
   const stats = recap?.data.stats;
@@ -122,9 +157,14 @@ export default function RecapDetailPage() {
             {error}
           </div>
         )}
-        {downloadError && (
+        {shareError && (
           <div className="bg-error/10 border border-error/20 text-error px-4 py-3 rounded-lg text-sm">
-            {downloadError}
+            {shareError}
+          </div>
+        )}
+        {copySuccess && (
+          <div className="bg-green-500/10 border border-green-500/20 text-green-500 px-4 py-3 rounded-lg text-sm">
+            Copied to clipboard!
           </div>
         )}
 
@@ -135,18 +175,29 @@ export default function RecapDetailPage() {
         ) : (
           <>
             {/* Share / Download */}
-            <div className="bg-surface border border-text-muted/20 rounded-lg p-4 flex items-center justify-between">
-              <div>
+            <div className="bg-surface border border-text-muted/20 rounded-lg p-4">
+              <div className="mb-3">
                 <div className="text-sm font-semibold text-text-primary">Share recap card</div>
-                <div className="text-xs text-text-muted">Download an image you can post or send.</div>
+                <div className="text-xs text-text-muted">Download or copy an image you can post or send.</div>
               </div>
-              <button
-                onClick={handleDownloadCard}
-                disabled={isDownloading}
-                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors"
-              >
-                {isDownloading ? 'Generating…' : 'Download PNG'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDownloadCard}
+                  disabled={isDownloading || isCopying}
+                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors"
+                >
+                  {isDownloading ? 'Generating…' : 'Download PNG'}
+                </button>
+                {supportsClipboard && (
+                  <button
+                    onClick={handleCopyToClipboard}
+                    disabled={isDownloading || isCopying}
+                    className="flex-1 px-4 py-2 bg-surface-elevated border border-text-muted/20 text-text-primary rounded-lg text-sm font-semibold hover:bg-surface-elevated/80 disabled:opacity-60 transition-colors"
+                  >
+                    {isCopying ? 'Copying…' : copySuccess ? 'Copied!' : 'Copy to Clipboard'}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Stats */}
