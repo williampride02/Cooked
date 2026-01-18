@@ -82,8 +82,8 @@ development_status:
   4-1-daily-check-in-success: done
   4-2-daily-check-in-fold-with-excuse-selection: done
   4-3-proof-photo-submission: done
-  4-4-check-in-reminder-notifications: ready-for-dev  # Requires backend Edge Function
-  4-5-missed-check-in-auto-fold: ready-for-dev  # Requires backend Edge Function
+  4-4-check-in-reminder-notifications: done  # Edge Function deployed, cron scheduled - needs Vault secrets to activate
+  4-5-missed-check-in-auto-fold: done  # Edge Function deployed, cron scheduled - needs Vault secrets to activate
   epic-4-retrospective: optional
 
   # Epic 5: Roast Threads & Reactions (7 stories)
@@ -124,7 +124,7 @@ development_status:
   web-6-weekly-recaps: done  # List/detail + shareable recap card image generation (download + clipboard)
   web-7-group-invites-join-requests: review  # Secure invite links + join request approval
   web-8-tracker-reconciliation: done  # Story file + status reconciliation for web-3..web-6 + follow-up story stubs
-  web-9-supabase-cron-edge-productionize: ready-for-dev  # Vault secrets + cron verification + deployment checklist
+  web-9-supabase-cron-edge-productionize: in-progress  # Edge Functions deployed, cron scheduled - Vault secrets setup pending
   web-10-web-auth-account-linking-hardening: ready-for-dev  # Improve email/phone linking reliability + UX
   web-11-web-roast-threads-parity: done  # Full parity achieved (media/reactions/enforcement/mute)
   web-12-subscription-end-to-end: ready-for-dev  # RevenueCat webhook + group premium gating verification
