@@ -96,7 +96,9 @@ export function useFeed(groupId: string | null): UseFeedReturn {
       setError(null);
 
       // We paginate by increasing the number of merged items shown (stable ordering across multiple tables).
+      // Fetch a buffer (2x desired) from each table to account for merging/deduplication.
       const desiredCount = isRefresh ? PAGE_SIZE : offsetRef.current + PAGE_SIZE;
+      const fetchBuffer = Math.max(desiredCount * 2, PAGE_SIZE * 2); // Fetch more to account for merging
       
       try {
         // Get current user
@@ -168,7 +170,7 @@ export function useFeed(groupId: string | null): UseFeedReturn {
               )
               .in('pact_id', pactIds)
               .order('created_at', { ascending: false })
-              .range(0, desiredCount - 1)
+              .range(0, fetchBuffer - 1)
           : Promise.resolve({ data: [], error: null } as any);
 
         const pactCreatedPromise = supabase
@@ -181,7 +183,7 @@ export function useFeed(groupId: string | null): UseFeedReturn {
           )
           .in('group_id', groupIdsForFeed)
           .order('created_at', { ascending: false })
-          .range(0, desiredCount - 1);
+          .range(0, fetchBuffer - 1);
 
         const memberJoinedPromise = supabase
           .from('group_members')
@@ -200,7 +202,7 @@ export function useFeed(groupId: string | null): UseFeedReturn {
           .select('id, group_id, week_start, week_end, created_at')
           .in('group_id', groupIdsForFeed)
           .order('created_at', { ascending: false })
-          .range(0, desiredCount - 1);
+          .range(0, fetchBuffer - 1);
 
         const [
           { data: checkIns, error: checkInsError },
@@ -323,23 +325,42 @@ export function useFeed(groupId: string | null): UseFeedReturn {
           week_end: r.week_end,
         }));
 
-        const mergedAll = [...checkInItems, ...pactCreatedItems, ...memberJoinedItems, ...recapItems]
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // Merge all items and deduplicate by ID
+        const mergedAll = [...checkInItems, ...pactCreatedItems, ...memberJoinedItems, ...recapItems];
+        
+        // If loading more (not refresh), include existing items and deduplicate against them
+        const existingIds = isRefresh ? new Set<string>() : new Set(feedItems.map((item) => item.id));
+        const seenIds = new Set<string>(existingIds);
+        const deduped: FeedItem[] = isRefresh ? [] : [...feedItems];
+        
+        for (const item of mergedAll) {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            deduped.push(item);
+          }
+        }
 
-        const merged = mergedAll.slice(0, desiredCount);
+        // Sort by created_at descending
+        const sorted = deduped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        // Take desired count (or all if fewer)
+        const merged = sorted.slice(0, desiredCount);
         setFeedItems(merged);
 
-        // Heuristic: if any table returned desiredCount, there's likely more.
+        // Determine if there's more: we have more if:
+        // 1. We got exactly desiredCount items after deduplication, OR
+        // 2. Any source table returned the full buffer (indicating more exists)
         const checkInsCount = (checkInsWithSignedProof || []).length;
         const pactsCount = (pactCreated || []).length;
         const membersCount = (memberJoined || []).length;
         const recapsCount = (recaps || []).length;
-        setHasMore(
-          checkInsCount === desiredCount ||
-            pactsCount === desiredCount ||
-            membersCount === desiredCount ||
-            recapsCount === desiredCount
-        );
+        const hasExactCount = merged.length === desiredCount;
+        const anyTableHasMore = 
+          checkInsCount >= fetchBuffer ||
+          pactsCount >= fetchBuffer ||
+          membersCount >= fetchBuffer ||
+          recapsCount >= fetchBuffer;
+        setHasMore(hasExactCount || anyTableHasMore);
 
         offsetRef.current = desiredCount;
         setOffset(desiredCount);
