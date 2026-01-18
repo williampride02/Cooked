@@ -403,9 +403,12 @@ export function useFeed(groupId: string | null): UseFeedReturn {
       }, 500);
     };
 
+    // Check-ins: listen to all inserts (Supabase Realtime can't filter by joined pacts.group_id)
+    // fetchFeed will filter check_ins by pact_id -> group_id relationship
     channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'check_ins' }, scheduleRefresh);
 
-    // These tables have group_id, so we can filter when a specific group is selected.
+    // Pacts: filter by group_id when viewing a specific group
+    // In "All Groups" mode (groupId=null), listen to all; fetchFeed filters to user's groups
     channel.on(
       'postgres_changes',
       {
@@ -417,6 +420,8 @@ export function useFeed(groupId: string | null): UseFeedReturn {
       scheduleRefresh
     );
 
+    // Group members: filter by group_id when viewing a specific group
+    // In "All Groups" mode, listen to all; fetchFeed filters to user's groups
     channel.on(
       'postgres_changes',
       {
@@ -428,6 +433,8 @@ export function useFeed(groupId: string | null): UseFeedReturn {
       scheduleRefresh
     );
 
+    // Weekly recaps: filter by group_id when viewing a specific group
+    // In "All Groups" mode, listen to all; fetchFeed filters to user's groups
     channel.on(
       'postgres_changes',
       {
