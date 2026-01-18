@@ -108,10 +108,22 @@ export function usePacts(): UsePactsReturn {
           .insert(participantInserts);
 
         if (participantError) {
-          console.error('Add participants error:', participantError);
+          // Extract detailed error information
+          const errorDetails = {
+            message: participantError.message || 'Unknown error',
+            code: participantError.code || 'unknown',
+            details: participantError.details || null,
+            hint: participantError.hint || null,
+            fullError: JSON.stringify(participantError, null, 2),
+          };
+          console.error('Add participants error:', errorDetails);
           // Clean up the pact if participants couldn't be added
           await supabase.from('pacts').delete().eq('id', pact.id);
-          setError('Failed to add participants. Please try again.');
+          setError(
+            participantError.message || 
+            participantError.details || 
+            'Failed to add participants. Please try again.'
+          );
           return null;
         }
 
