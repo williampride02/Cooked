@@ -161,21 +161,32 @@ export default function RoastThreadPage() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'roast_responses', filter: `thread_id=eq.${thread.id}` },
         () => {
+          // New response: reload thread to get the new response with user info
           loadThread();
         }
       )
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'reactions' },
-        () => {
-          loadThread();
+        async (payload) => {
+          // New reaction: only refresh reaction summaries for affected response
+          const targetId = payload.new?.target_id as string | undefined;
+          if (targetId && payload.new?.target_type === 'roast_response') {
+            const summaries = await fetchReactionSummaries({ targetType: 'roast_response', targetIds: [targetId] });
+            setReactionByResponseId((prev) => ({ ...prev, ...summaries }));
+          }
         }
       )
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'reactions' },
-        () => {
-          loadThread();
+        async (payload) => {
+          // Deleted reaction: only refresh reaction summaries for affected response
+          const targetId = payload.old?.target_id as string | undefined;
+          if (targetId && payload.old?.target_type === 'roast_response') {
+            const summaries = await fetchReactionSummaries({ targetType: 'roast_response', targetIds: [targetId] });
+            setReactionByResponseId((prev) => ({ ...prev, ...summaries }));
+          }
         }
       )
       .subscribe();
@@ -183,7 +194,7 @@ export default function RoastThreadPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadThread, thread?.id]);
+  }, [loadThread, thread?.id, fetchReactionSummaries]);
 
   const roastLevel = checkIn?.pacts?.roast_level ?? 2;
   const canTextPost = useMemo(
@@ -308,11 +319,41 @@ export default function RoastThreadPage() {
 
   const handleToggleReaction = useCallback(
     async (responseId: string, emoji: ReactionEmoji) => {
-      await toggleReaction({ targetType: 'roast_response', targetId: responseId, emoji });
-      // Reload summaries for this thread quickly by reloading (simple + consistent)
-      await loadThread();
+      // Optimistically update local state
+      setReactionByResponseId((prev) => {
+        const current = prev[responseId] || { counts: { skull: 0, cap: 0, clown: 0, salute: 0, fire: 0, clap: 0 }, myReaction: null };
+        const newCounts = { ...current.counts };
+        const wasMyReaction = current.myReaction === emoji;
+
+        if (wasMyReaction) {
+          // Toggle off: remove reaction
+          newCounts[emoji] = Math.max(0, newCounts[emoji] - 1);
+          return { ...prev, [responseId]: { counts: newCounts, myReaction: null } };
+        } else {
+          // Toggle on or change: add/change reaction
+          if (current.myReaction) {
+            // Remove old reaction count
+            newCounts[current.myReaction] = Math.max(0, newCounts[current.myReaction] - 1);
+          }
+          // Add new reaction count
+          newCounts[emoji] = (newCounts[emoji] || 0) + 1;
+          return { ...prev, [responseId]: { counts: newCounts, myReaction: emoji } };
+        }
+      });
+
+      // Apply the change to the database
+      try {
+        await toggleReaction({ targetType: 'roast_response', targetId: responseId, emoji });
+        // Refresh just this response's reaction summary (not the whole thread)
+        const summaries = await fetchReactionSummaries({ targetType: 'roast_response', targetIds: [responseId] });
+        setReactionByResponseId((prev) => ({ ...prev, ...summaries }));
+      } catch (e) {
+        // On error, revert optimistic update by refreshing just this response
+        const summaries = await fetchReactionSummaries({ targetType: 'roast_response', targetIds: [responseId] });
+        setReactionByResponseId((prev) => ({ ...prev, ...summaries }));
+      }
     },
-    [loadThread, toggleReaction]
+    [toggleReaction, fetchReactionSummaries]
   );
 
   const handleClose = useCallback(async () => {
