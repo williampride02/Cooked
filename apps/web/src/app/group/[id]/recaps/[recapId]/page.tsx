@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { WeeklyRecap, RecapAwards } from '@cooked/shared';
 import { useRecaps } from '@/hooks/useRecaps';
+import { supabase } from '@/lib/supabase';
+import { generateRecapCardPng } from '@/utils/recapCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +32,9 @@ export default function RecapDetailPage() {
 
   const { fetchRecap, isLoading, error } = useRecaps();
   const [recap, setRecap] = useState<WeeklyRecap | null>(null);
+  const [groupName, setGroupName] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!recapId) return;
@@ -40,6 +45,42 @@ export default function RecapDetailPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!groupId) return;
+      const { data, error } = await supabase.from('groups').select('name').eq('id', groupId).single();
+      if (!mounted) return;
+      if (error) return;
+      setGroupName((data as any)?.name ?? null);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [groupId]);
+
+  const handleDownloadCard = useCallback(async () => {
+    if (!recap) return;
+    setIsDownloading(true);
+    setDownloadError(null);
+    try {
+      const blob = await generateRecapCardPng({ recap, groupName });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cooked-recap-${groupId}-${recap.week_end}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      console.error('Download recap card error:', e);
+      setDownloadError(e?.message || 'Failed to generate recap card');
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [groupId, groupName, recap]);
 
   const awards = recap?.data.awards;
   const stats = recap?.data.stats;
@@ -81,6 +122,11 @@ export default function RecapDetailPage() {
             {error}
           </div>
         )}
+        {downloadError && (
+          <div className="bg-error/10 border border-error/20 text-error px-4 py-3 rounded-lg text-sm">
+            {downloadError}
+          </div>
+        )}
 
         {isLoading && !recap ? (
           <div className="text-text-secondary">Loading recap...</div>
@@ -88,6 +134,21 @@ export default function RecapDetailPage() {
           <div className="text-text-secondary">Recap not found.</div>
         ) : (
           <>
+            {/* Share / Download */}
+            <div className="bg-surface border border-text-muted/20 rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-text-primary">Share recap card</div>
+                <div className="text-xs text-text-muted">Download an image you can post or send.</div>
+              </div>
+              <button
+                onClick={handleDownloadCard}
+                disabled={isDownloading}
+                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 transition-colors"
+              >
+                {isDownloading ? 'Generating…' : 'Download PNG'}
+              </button>
+            </div>
+
             {/* Stats */}
             {stats && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
